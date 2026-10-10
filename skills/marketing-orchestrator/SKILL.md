@@ -107,7 +107,7 @@ Ask one question: approve, edit, or save as draft. Map answers to Postiz `type`:
    - CLI or our MCP: `mkt.py postiz upload <file>` / `postiz_upload` → `{id, path}`.
    - Postiz MCP only: check `mediaListTool` for an existing copy; if the file is local only, ask the user to drop it into the Postiz media library.
 2. **Create the post** with `settings.__type` and required settings from the schema (examples in `references/postiz-api.md`).
-   - CLI: `mkt.py postiz build --package <package.json> --type schedule --date <UTC> --out payload.json`, check it, then `mkt.py postiz create payload.json`. The CLI validates before sending.
+   - CLI: `mkt.py postiz build --package <package.json> --type schedule --date <UTC> --out payload.json`, check it, then `mkt.py postiz create payload.json --approved` (only after approval). The CLI validates before sending.
    - Postiz MCP: `schedulePostTool`. Content is HTML (`<p>` per line, `<strong>`, `<ul><li>`; never combine `<u>` and `<strong>`). For LinkedIn/Facebook, extra `postsAndComments` items are comments; for X/Threads/Bluesky, a thread.
 3. **Verify** by listing posts for that date. Report one line per channel: channel, local time, state, post ID.
 
