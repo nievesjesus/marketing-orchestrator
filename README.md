@@ -4,6 +4,8 @@ A personal marketing assistant packaged as a portable [Agent Skill](https://agen
 
 Works in **Claude Code, Claude Desktop / claude.ai, Codex, Cursor** and any client that reads `SKILL.md` or speaks MCP.
 
+Built for **non-technical users**: the assistant guides setup in plain language (connect Canva and Postiz with a few clicks, create a brand card) and always replies in the user's language. The skill files themselves are kept in English. The Python toolkit and local MCP server are optional extras for developers.
+
 ## What it does
 
 - **Post packages** per platform: objective, audience, hook (+ A/B), copy, CTA, hashtags, alt text, first comment.

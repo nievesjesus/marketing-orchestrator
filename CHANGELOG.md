@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 — 2026-10-10
+- Rewritten for non-technical users: connectors first (Canva, Postiz), plain-language guidance, one step at a time, no commands or keys asked of the user.
+- Language rule: always reply in the user's language; skill files stay in English.
+- New `references/getting-started.md` (connect Canva, connect Postiz, brand card in a Claude Project) and `references/brand-card.md` (template + example).
+- `references/image-generation.md` rewritten: Canva generate-image/generate-design/Brand Kit, Adobe, Postiz, Figma, Gemini/ChatGPT apps, own photos.
+- Developer material moved to `references/advanced.md` (CLI, local MCP server, Gemini API).
+
 ## 0.3.0 — 2026-10-10
 - `references/postiz-mcp.md`: install guide for the Postiz MCP (Claude connector, Claude Code, Codex, Cursor, Desktop config) and tool mapping.
 - Image providers table: Gemini direct, Figma MCP `generate_image`/Weave, Postiz `generateImageTool`, Canva designs.

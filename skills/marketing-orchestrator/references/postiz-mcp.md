@@ -1,5 +1,7 @@
 # Installing the Postiz MCP
 
+For a non-technical user, use the simple walkthrough in `getting-started.md` (step B). This page has the details for every app, including developer tools.
+
 Postiz runs a hosted MCP server. Once it's connected, the agent can list channels, read the calendar, schedule posts and use the media library without the CLI or a local API key. Docs: https://docs.postiz.com/mcp/setup
 
 ## 1. Get your API key

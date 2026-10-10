@@ -1,4 +1,4 @@
-# Setup per client
+# Setup per client (developers)
 
 The skill is a plain Agent Skills folder (`SKILL.md` + `references/` + `scripts/` + `assets/`). Instructions work everywhere; **actions** need one of: a shell with network (CLI), the bundled MCP server, or the official Postiz MCP.
 
