@@ -1,0 +1,31 @@
+{
+  "slug": "TODO-slug",
+  "name": "TODO Brand name",
+  "goal": "TODO one of: awareness | engagement | traffic | leads | authority",
+  "languages": ["es"],
+  "timezone": "America/Argentina/Buenos_Aires",
+  "audience_timezone": "America/Argentina/Buenos_Aires",
+  "default_channels": ["linkedin"],
+  "cadence_per_week": {"linkedin": 3},
+  "min_spacing_hours": {"default": 24, "x": 3, "instagram-story": 4},
+  "audiences": [
+    {"name": "TODO audience", "pain": "TODO what keeps them up at night", "stage": "TODO aware | considering | customer"}
+  ],
+  "pillars": ["TODO pillar 1", "TODO pillar 2", "TODO pillar 3"],
+  "offer": {"cta_url": "", "primary_cta": "TODO"},
+  "hashtags": {"branded": [], "always": [], "never": ["follow4follow", "like4like"]},
+  "emoji": "sparse",
+  "links_in_first_comment": true,
+  "visual": {
+    "style": "TODO e.g. clean editorial, flat illustration, high-contrast photography, lots of negative space",
+    "imagery": "TODO e.g. real workspaces, diverse teams, abstract shapes; no stock-photo handshakes",
+    "avoid": "TODO e.g. neon gradients, robots, clip art, busy backgrounds",
+    "colors": {"primary": "#111111", "secondary": "#FFFFFF", "accent": "#FF5A1F"},
+    "fonts": {"heading": "TODO e.g. Inter Bold", "body": "TODO e.g. Inter Regular"},
+    "logo": {"primary": "logo.png", "light": "logo-light.png", "dark": "logo-dark.png"},
+    "logo_position": "bottom-right",
+    "style_refs": [],
+    "default_aspect": {"linkedin": "4:5", "instagram": "4:5", "x": "16:9", "tiktok": "9:16"}
+  },
+  "learned": []
+}

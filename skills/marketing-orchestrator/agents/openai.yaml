@@ -1,0 +1,14 @@
+# Codex-specific metadata (ignored by other clients).
+interface:
+  display_name: "Marketing Orchestrator"
+  short_description: "On-brand social posts from images, Gemini visuals, Postiz scheduling"
+  brand_color: "#FF5A1F"
+  default_prompt: "Here are images for a post. Build the package for my brand and suggest when to publish."
+policy:
+  allow_implicit_invocation: true
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "marketing-orchestrator"
+      description: "Local MCP server bundled in scripts/mcp_server.py (brand kits, Gemini images, Postiz upload/create)"
+      transport: "stdio"
