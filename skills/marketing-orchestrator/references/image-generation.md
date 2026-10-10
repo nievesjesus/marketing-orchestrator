@@ -1,4 +1,22 @@
-# Image generation with Gemini
+# Image generation
+
+## Providers (use the first one available)
+
+| # | Provider | How | Models | Brand kit applied? | Notes |
+|---|---|---|---|---|---|
+| 1 | **Gemini direct** | `mkt.py image generate` or our MCP `image_generate` | Nano Banana 2.1 / Pro / Lite | Yes, automatically (style, palette, refs) | Needs `GEMINI_API_KEY`. Full control: aspect, size, reference images, edits |
+| 2 | **Figma MCP** | `generate_image` (needs the user's `planKey`) | `gemini-3.1-flash-image` (Nano Banana 2), `gemini-3.1-flash-lite-image`, `gpt-image-2.5-sunburst` | No: paste the brand style block from `mkt.py brand show` into the prompt | Uses Figma AI credits. Returns a URL that expires in 7 days, so download it right away. No reference images. Figma Weave (`weave_find_model` / `weave_run_model`) runs more models (incl. Nano Banana variants) after the user links Figma to Weave; always quote the cost first |
+| 3 | **Postiz MCP** | `generateImageTool` (`prompt`) | Postiz's choice | No: put style in the prompt | Image lands straight in the Postiz media library (`path` ready for `attachments`). Not in the directory version of the connector |
+| 4 | **Canva MCP** | Canva's design generation tools, then export PNG/JPG | Canva Design Model (Canva's own) | Yes, via the user's Canva Brand Kit | Makes **full editable designs** (layout + text + brand), not raw images. Best for templated posts, carousels and quote cards the user may tweak in Canva |
+
+Pick by job:
+- Photo-like or illustrative image, edits of an existing image → **Gemini direct** (or Figma if there's no Gemini key).
+- Branded layout with headline, logo and fixed template → **Canva**, then export and upload to Postiz.
+- Quick visual that only needs to live in Postiz → **Postiz** `generateImageTool`.
+
+Whatever the provider: brief first, confirm cost, look at the result, stamp the real logo with `image overlay-logo` (download the file first if the provider returned a URL), and `image fit` to the platform ratio.
+
+## Gemini direct
 
 Uses Google's Gemini image models ("Nano Banana"). Needs `GEMINI_API_KEY` (https://aistudio.google.com/apikey). Every output carries Google's invisible SynthID watermark.
 

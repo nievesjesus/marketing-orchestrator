@@ -4,7 +4,7 @@ description: Personal marketing assistant. Turns images (uploaded or generated w
 license: MIT
 compatibility: Works in any Agent Skills client (Claude Code, Claude Desktop/claude.ai, Codex, Cursor, Gemini CLI). Actions need Python 3.9+ and network access to Postiz and Gemini, or the bundled MCP server / a Postiz MCP connector.
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
   author: Codeame
 ---
 
@@ -20,7 +20,7 @@ Paths below are relative to this skill's folder. The CLI is `python3 scripts/mkt
 
 Use the first option that works in your environment:
 
-1. **MCP tools** — if you have tools from the `marketing-orchestrator` MCP server (`brand_get`, `image_generate`, `postiz_upload`, …) and/or a Postiz MCP connector (`integrationList`, `schedulePostTool`, …), use them. If your client loads tools lazily, search for them first.
+1. **MCP tools** — if you have tools from the `marketing-orchestrator` MCP server (`brand_get`, `image_generate`, `postiz_upload`, …) and/or a Postiz MCP connector (`integrationList`, `schedulePostTool`, …), use them. If your client loads tools lazily, search for them first. No Postiz tools and the user wants to publish → walk them through `references/postiz-mcp.md`.
 2. **CLI** — if you can run shell commands, use `scripts/mkt.py`. Run `python3 scripts/mkt.py doctor` first: it reports which keys are set and which services are reachable without printing secrets.
 3. **Manual** — no tools and no shell (e.g. a plain chat). Still deliver the full package (section 3) and the exact Postiz payload JSON, and tell the user what to connect (see `references/setup.md`).
 
@@ -38,7 +38,7 @@ Postiz Cloud is rate-limited (~30 requests/hour on most public endpoints). List 
 
 **User supplied images** → actually look at every image. Note subject, setting, mood, any text, people, brand elements, aspect ratio and fit per platform. Flag problems before writing copy: low resolution, cut-off text, wrong ratio, unsupported format (Postiz accepts jpg, png, gif, webp, avif, bmp, tiff, mp4 — not PDF), off-brand colors.
 
-**User wants an image generated or edited** → follow `references/image-generation.md`. In short:
+**User wants an image generated or edited** → follow `references/image-generation.md`. Pick the provider from its Providers table: Gemini direct, Figma MCP `generate_image`, Postiz `generateImageTool`, or Canva for full branded designs. In short (Gemini direct):
 1. Write a brief: concept, platform, aspect ratio, text to render (if any), brand style.
 2. Show the brief to the user in 3–5 lines; generate after they agree (generation costs money).
 3. `mkt.py image generate --brand <slug> --prompt "…" --aspect 4:5 --out out/post.png` — the CLI injects the brand's visual style and reference images (logo, style refs) automatically. Use `--ref <file>` to edit or vary an existing image.
@@ -134,6 +134,7 @@ On validation errors, fix the specific field and retry once; then show the error
 | `references/image-generation.md` | Gemini image workflow, prompt recipe, models, limits |
 | `references/platform-playbook.md` | Per-platform copy, hashtags, ratios, timing |
 | `references/postiz-api.md` | Postiz endpoints, payloads, per-platform settings, MCP mapping |
+| `references/postiz-mcp.md` | Installing the Postiz MCP in Claude, Claude Code, Codex, Cursor |
 | `references/package-schema.md` | JSON shape of a post package |
 | `references/setup.md` | Keys, installs and connectors per client |
 | `assets/brands/<slug>/` | One folder per brand: `brand.json`, `voice.md`, `logo*.png`, `style/*` |

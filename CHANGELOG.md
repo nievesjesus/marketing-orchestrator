@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 — 2026-10-10
+- `references/postiz-mcp.md`: install guide for the Postiz MCP (Claude connector, Claude Code, Codex, Cursor, Desktop config) and tool mapping.
+- Image providers table: Gemini direct, Figma MCP `generate_image`/Weave, Postiz `generateImageTool`, Canva designs.
+- `--approved` flag documented for `postiz create`.
+
 ## 0.2.0 — 2026-10-10
 - Portable Agent Skills layout (`skills/marketing-orchestrator/`), agent-neutral instructions.
 - Unified stdlib CLI `scripts/mkt.py` (doctor, brand, image, time, package, postiz).

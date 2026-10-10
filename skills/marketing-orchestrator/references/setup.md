@@ -55,9 +55,13 @@ args = ["/ABS/PATH/skills/marketing-orchestrator/scripts/mcp_server.py"]
 
 **Cursor** — `~/.cursor/mcp.json`: same shape as Claude Desktop.
 
-## 4. Optional: official Postiz MCP
+## 4. Recommended: official Postiz MCP
 
-Postiz > Settings > Developers gives an MCP URL. Add it as a custom/remote connector in your client. It covers channels, schedule, calendar and media library; our MCP adds brand kits, Gemini, local-file upload and approval-guarded creation. Both can be active.
+Step-by-step for Claude, Claude Code, Codex and Cursor: `references/postiz-mcp.md`. It covers channels, schedule, calendar and media library with no local key; our MCP adds brand kits, Gemini, local-file upload and approval-guarded creation. Both can be active.
+
+## 5. Optional: other image MCPs
+
+Figma (`generate_image`, Nano Banana 2 / GPT image) and Canva (full branded designs) can stand in for or complement Gemini. See the Providers table in `references/image-generation.md`.
 
 ## Troubleshooting
 
