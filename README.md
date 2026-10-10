@@ -70,3 +70,7 @@ Read [`AGENTS.md`](AGENTS.md) (also loaded by Claude Code via `CLAUDE.md`). Test
 ## License
 
 MIT
+
+## Continuing in Claude Code
+
+The full handoff prompt for the next iteration (hosted `marketing-images` MCP with fal + Leonardo + Gemini) is in [`docs/claude-code-handoff.md`](docs/claude-code-handoff.md).

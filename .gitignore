@@ -7,3 +7,6 @@ out/
 __pycache__/
 *.pyc
 .DS_Store
+.dev.vars
+node_modules/
+.wrangler/
