@@ -1,0 +1,24 @@
+# Example: run marketing-images with Docker Compose.
+#   cp .env.example .env     # fill in ACCESS_TOKENS and the provider keys you have
+#   cp docker-compose.example.yml docker-compose.yml
+#   docker compose up -d --build
+# Then add it to Claude Code:
+#   claude mcp add --transport http marketing-images http://localhost:8080/mcp/<token>
+services:
+  marketing-images:
+    build: .
+    image: marketing-images:local
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      # Links in tool results must be reachable by whoever uses them (Postiz copies from here).
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      DATA_DIR: /data
+    volumes:
+      - marketing-images-data:/data
+
+volumes:
+  marketing-images-data:

@@ -38,20 +38,24 @@ jobs:
       - name: Build the skill and plugin zips
         run: bash build.sh
 
-  # Enable when servers/marketing-images has a package.json (plan step 3: worker scaffold).
-  # worker:
-  #   name: Worker (marketing-images)
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: servers/marketing-images
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 22
-  #         cache: npm
-  #         cache-dependency-path: servers/marketing-images/package-lock.json
-  #     - run: npm ci
-  #     - run: npx tsc --noEmit
-  #     - run: npx vitest run
+  server:
+    name: Server (marketing-images)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: servers/marketing-images
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: servers/marketing-images/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit and rendering tests (offline)
+        run: npm test
+      - name: Build the Docker image (no push)
+        run: docker build -t marketing-images:ci .

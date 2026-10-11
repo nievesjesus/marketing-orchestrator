@@ -35,7 +35,7 @@ Data: the plugin stores nothing itself. Post text and images go only to the conn
 .claude-plugin/plugin.json          plugin manifest
 .mcp.json                           connector entries bundled in the plugin (no secrets)
 skills/marketing-orchestrator/      the skill: SKILL.md + references/ only (this is what ships)
-servers/marketing-images/           hosted image MCP server (design; Cloudflare Worker)
+servers/marketing-images/           portable MCP server (Node/TS, Docker): image generation + post composer
 tools/                              optional Python toolkit for developers (CLI, local MCP server, tests)
 build.sh                            validates the skill and builds both zips into dist/
 ```

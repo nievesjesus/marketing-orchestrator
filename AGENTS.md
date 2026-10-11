@@ -16,7 +16,7 @@ skills/marketing-orchestrator/      ← the skill: INSTRUCTIONS ONLY (portable A
   SKILL.md                          ← workflow; agent-neutral, < 500 lines
   agents/openai.yaml                ← Codex-only UI/policy metadata (others ignore it)
   references/*.md                   ← loaded on demand; keep details here, not in SKILL.md
-servers/marketing-images/           ← hosted MCP server (Cloudflare Worker, TypeScript); not part of the plugin zip
+servers/marketing-images/           ← portable MCP server (Node 22/TypeScript, Docker): image generation + post composer; not part of the plugin zip
 tools/                              ← optional Python dev toolkit; never shipped in the skill or plugin
   scripts/mkt.py                    ← CLI entry point (stdlib only)
   scripts/mcp_server.py             ← local stdio MCP server over the same library
@@ -27,7 +27,7 @@ tools/                              ← optional Python dev toolkit; never shipp
   install.sh                        ← dev helper: link/copy the skill into Claude Code / Codex, print local MCP config; `zip` runs build.sh
 build.sh                            ← validates the skill, builds dist/marketing-orchestrator.zip (skill only)
                                       and dist/marketing-orchestrator-plugin.zip (plugin bundle)
-.github/workflows/ci.yml            ← python tests · skill validation + build
+.github/workflows/ci.yml            ← python tests · skill validation + build · server (typecheck, tests, docker build)
 ```
 
 ## Rules
@@ -58,7 +58,7 @@ build.sh                            ← validates the skill, builds dist/marketi
 4. Tests in `tools/tests/` (mock HTTP; no network).
 5. `CHANGELOG.md`; bump `__version__` in `tools/scripts/mktlib/__init__.py`.
 
-**Hosted image server:** work in `servers/marketing-images/` (planning and design notes are kept locally, not in the repo); it has its own checks (CI job placeholder in `.github/workflows/ci.yml`).
+**Image server:** work in `servers/marketing-images/` (planning and design notes are kept locally, not in the repo); it has its own checks (`server` job in `.github/workflows/ci.yml`): from that folder run `npm run typecheck && npm test` (Node 22, see `.nvmrc`; no network or keys needed).
 
 ## Checks before committing
 
