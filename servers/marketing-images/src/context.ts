@@ -17,9 +17,11 @@ export interface AppContext {
   fonts: FontRegistry;
   /** Download a user-supplied image through the SSRF guard. */
   fetchImage(url: string): Promise<Buffer>;
+  /** Outbound HTTP for the image providers (tests replace it; defaults to the global fetch). */
+  providerFetch: typeof fetch;
 }
 
-export type ContextOverrides = Partial<Pick<AppContext, 'storage' | 'ledger' | 'fetchImage' | 'fonts'>>;
+export type ContextOverrides = Partial<Pick<AppContext, 'storage' | 'ledger' | 'fetchImage' | 'fonts' | 'providerFetch'>>;
 
 export function createContext(config: Config, logger: Logger, overrides: ContextOverrides = {}): AppContext {
   return {
@@ -40,5 +42,6 @@ export function createContext(config: Config, logger: Logger, overrides: Context
     fetchImage:
       overrides.fetchImage ??
       (async (url) => (await fetchSafe(url, { kind: 'image', allowInsecureLocalhost: config.allowInsecureLocalhost })).data),
+    providerFetch: overrides.providerFetch ?? ((input, init) => fetch(input, init)),
   };
 }
