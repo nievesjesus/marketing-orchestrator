@@ -21,3 +21,6 @@ servers/marketing-images/DESIGN.md
 # marketing-images local artifacts (rendered samples from the tests, dev data dir).
 servers/marketing-images/.samples/
 servers/marketing-images/.data/
+
+# Agent worktrees
+.claude/worktrees/

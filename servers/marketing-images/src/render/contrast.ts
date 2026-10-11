@@ -15,7 +15,7 @@ import { warn, type RenderWarning } from './warnings.js';
 
 /** Sampling and color decisions so text is always readable (DESIGN section 5.1, "contrast"). */
 
-export type ScrimMode = 'auto' | 'none' | 'strong';
+export type ScrimMode = 'auto' | 'soft' | 'none' | 'strong';
 
 export interface RegionStats {
   mean: RGB;
@@ -68,7 +68,7 @@ export interface Appearance {
   /** Pill button colors (cta-card). */
   buttonBg: string;
   buttonText: string;
-  scrim?: { color: string; alpha: number; strong: boolean };
+  scrim?: { color: string; alpha: number; strong: boolean; soft?: boolean };
   /** Background under the text after the scrim, for logo/plate decisions. */
   effectiveBg: RGB;
 }
@@ -76,6 +76,8 @@ export interface Appearance {
 const TARGET_CONTRAST = 4.5;
 const MIN_CONTRAST = 3;
 const ALPHAS = [0.5, 0.6, 0.7, 0.8, 0.85];
+/** `soft` scrim: starts lighter, still climbs until the text reaches the target contrast. */
+const SOFT_ALPHAS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85];
 
 /** Worst contrast of `hex` against the darkest and brightest plausible background. */
 function score(hex: string, lo: RGB, hi: RGB): number {
@@ -129,8 +131,9 @@ export function resolveAppearance(args: AppearanceArgs): Appearance {
   let effective: RGB = stats.mean;
   let inkHex = plain.hex;
   if (wantScrim) {
-    const alpha = args.mode === 'strong' ? 0.85 : (ALPHAS.find((a) => contrastRatio(paper, blend(hi, scrimRgb, a)) >= TARGET_CONTRAST) ?? 0.85);
-    scrim = { color: scrimColor, alpha, strong: args.mode === 'strong' };
+    const steps = args.mode === 'soft' ? SOFT_ALPHAS : ALPHAS;
+    const alpha = args.mode === 'strong' ? 0.85 : (steps.find((a) => contrastRatio(paper, blend(hi, scrimRgb, a)) >= TARGET_CONTRAST) ?? 0.85);
+    scrim = { color: scrimColor, alpha, strong: args.mode === 'strong', ...(args.mode === 'soft' ? { soft: true } : {}) };
     effective = blend(stats.mean, scrimRgb, alpha);
     inkHex = pickInk([brand.colors.paper, '#ffffff'], blend(lo, scrimRgb, alpha), blend(hi, scrimRgb, alpha)).hex;
   } else if (plain.score < MIN_CONTRAST) {

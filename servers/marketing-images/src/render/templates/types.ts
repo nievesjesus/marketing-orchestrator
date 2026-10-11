@@ -1,4 +1,5 @@
-import type { Orientation } from '../formats.js';
+import type { FormatName, Orientation } from '../formats.js';
+import type { ScrimMode } from '../contrast.js';
 
 /**
  * Templates are DATA (DESIGN section 5.1): the layout engine in `layout.ts` interprets them, so a new
@@ -6,7 +7,7 @@ import type { Orientation } from '../formats.js';
  * multiplied by `min(width, height) / 1080` (the typography floors scale the same way).
  */
 
-export const TEXT_FIELDS = ['eyebrow', 'headline', 'body', 'cta', 'footer'] as const;
+export const TEXT_FIELDS = ['eyebrow', 'headline', 'body', 'cta', 'footer', 'number'] as const;
 export type TextField = (typeof TEXT_FIELDS)[number];
 
 export type Align = 'left' | 'center' | 'right';
@@ -21,7 +22,8 @@ export type TextTone = 'ink' | 'accent' | 'muted';
 
 export interface SlotSpec {
   role: TextRole;
-  font: 'heading' | 'body';
+  /** `accent` = the brand's accent font (falls back to the heading font). */
+  font: 'heading' | 'body' | 'accent';
   weight: 400 | 700;
   italic?: boolean;
   maxLines: number;
@@ -58,4 +60,27 @@ export interface TemplateSpec {
   slots: Partial<Record<TextField, SlotSpec>>;
   /** The CTA is drawn as an accent pill button instead of plain text. Sizes are in em of the button text. */
   button?: { paddingX: number; paddingY: number; gapBefore: number };
+  /**
+   * Something drawn ABOVE the text stack:
+   *  - `mark`: a fixed decorative glyph (the opening quotation mark of a quote card);
+   *  - `chip`: the `number` text inside a small accent tag (the point number of a carousel slide). Only drawn when `texts.number` is given.
+   * `gapAfter` is the space between it and the next item, px at the 1080-px reference.
+   */
+  lead?:
+    | { kind: 'mark'; text: string; slot: SlotSpec; gapAfter: number }
+    | { kind: 'chip'; slot: SlotSpec; paddingX: number; paddingY: number; gapAfter: number };
+  /**
+   * The HEADLINE is drawn as one line inside an accent badge (minimal-badge) instead of as big free text.
+   * Sizes are in em of the badge text. The headline slot then uses the `label` role.
+   */
+  badge?: { paddingX: number; paddingY: number; gapBefore: number };
+  /**
+   * The photo fills only one part of the canvas; the rest is a flat brand-primary panel that holds the text.
+   * `share` is the photo's share of the canvas along the split axis.
+   */
+  split?: Record<FormatName, { side: 'left' | 'right' | 'top' | 'bottom'; share: number }>;
+  /** Scrim used when neither the options nor the brand ask for one explicitly. */
+  scrim?: ScrimMode;
+  /** Share of the free height first offered to the body text (default 0.38). */
+  bodyShare?: number;
 }

@@ -69,6 +69,13 @@ const FAMILIES: FamilyDef[] = [
   },
 ];
 
+/** Parses a TTF/OTF buffer into a face (used for fonts a saved brand uploaded). Throws if opentype.js cannot read it. */
+export function parseFontFace(family: string, file: string, weight: number, italic: boolean, data: Buffer): FontFace {
+  // Copy into a standalone ArrayBuffer: opentype.parse must not see Node's shared Buffer pool.
+  const ab = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  return { family, file, weight, italic, data, font: opentype.parse(ab) };
+}
+
 /** "Work Sans", "work-sans" and "WorkSans" all map to the same key. */
 export function familyKey(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -77,8 +84,15 @@ export function familyKey(name: string): string {
 export class FontRegistry {
   private readonly families = new Map<string, { display: string; faces: FontFace[] }>();
 
-  /** Loads and parses every bundled font once; throws if a file is missing (fail fast at startup). */
-  constructor(fontsDir: string) {
+  /**
+   * Loads and parses every bundled font once; throws if a file is missing (fail fast at startup).
+   * Passing an existing registry instead of a directory makes a cheap copy (used by `withFaces`).
+   */
+  constructor(fontsDir: string | FontRegistry) {
+    if (typeof fontsDir !== 'string') {
+      for (const [key, entry] of fontsDir.families) this.families.set(key, { display: entry.display, faces: [...entry.faces] });
+      return;
+    }
     for (const def of FAMILIES) {
       const faces = def.faces.map((f): FontFace => {
         const data = readFileSync(path.join(fontsDir, f.file));
@@ -88,6 +102,28 @@ export class FontRegistry {
       });
       this.families.set(familyKey(def.display), { display: def.display, faces });
     }
+  }
+
+  /**
+   * A copy of this registry with extra faces layered on top (a brand's uploaded fonts, scoped to ONE render).
+   * A family with the same name as a bundled one replaces it for that render only.
+   */
+  withFaces(faces: readonly FontFace[]): FontRegistry {
+    const copy = new FontRegistry(this);
+    const byFamily = new Map<string, FontFace[]>();
+    for (const face of faces) byFamily.set(face.family, [...(byFamily.get(face.family) ?? []), face]);
+    for (const [display, list] of byFamily) copy.families.set(familyKey(display), { display, faces: list });
+    return copy;
+  }
+
+  /** The display name of a family ("work-sans" -> "Work Sans"), or undefined when it is not registered. */
+  displayName(family: string | undefined): string | undefined {
+    return family === undefined ? undefined : this.families.get(familyKey(family))?.display;
+  }
+
+  /** Every face of a family (empty when unknown). */
+  facesOf(family: string): FontFace[] {
+    return this.families.get(familyKey(family))?.faces ?? [];
   }
 
   listFamilies(): string[] {

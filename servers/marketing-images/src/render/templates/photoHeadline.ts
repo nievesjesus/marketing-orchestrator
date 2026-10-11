@@ -18,7 +18,7 @@ export const photoHeadline: TemplateSpec = {
   slots: {
     eyebrow: {
       role: 'label',
-      font: 'heading',
+      font: 'accent',
       weight: 700,
       maxLines: 1,
       maxSize: 30,

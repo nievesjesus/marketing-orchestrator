@@ -3,8 +3,8 @@ import { Resvg } from '@resvg/resvg-js';
 import sharp from 'sharp';
 import { UserFacingError } from '../errors.js';
 import { luma, rgba, type RGB } from './color.js';
-import type { ResolvedBrand } from './brand.js';
-import { graphicSafeY, LOGO_MARGIN, LOGO_WIDTH, type FormatSpec, type Rect } from './formats.js';
+import { LOGO_WIDTH_BY_SIZE, type LogoSize, type ResolvedBrand } from './brand.js';
+import { graphicSafeY, LOGO_MARGIN, type FormatSpec, type Rect } from './formats.js';
 import type { LogoCorner } from './templates/index.js';
 import { warn, type RenderWarning } from './warnings.js';
 
@@ -32,13 +32,13 @@ const VARIANT_ORDER: readonly LogoVariant[] = ['primary', 'light', 'dark'];
 /** Wide logos use 16 % of the width; tall ones are capped so they never dominate (share of the short side). */
 const MAX_HEIGHT_SHARE = 0.14;
 
-export function logoTargetWidth(format: FormatSpec): number {
-  return Math.round(format.width * LOGO_WIDTH);
+export function logoTargetWidth(format: FormatSpec, size: LogoSize = 'medium'): number {
+  return Math.round(format.width * LOGO_WIDTH_BY_SIZE[size]);
 }
 
-async function prepareOne(data: Buffer, format: FormatSpec): Promise<PreparedLogoVariant> {
-  const targetW = logoTargetWidth(format);
-  const maxH = Math.round(Math.min(format.width, format.height) * MAX_HEIGHT_SHARE);
+async function prepareOne(data: Buffer, format: FormatSpec, size: LogoSize): Promise<PreparedLogoVariant> {
+  const targetW = logoTargetWidth(format, size);
+  const maxH = Math.round(Math.min(format.width, format.height) * MAX_HEIGHT_SHARE * (LOGO_WIDTH_BY_SIZE[size] / LOGO_WIDTH_BY_SIZE.medium));
   const { data: png, info } = await sharp(data, { limitInputPixels: 40_000_000 })
     .rotate()
     .ensureAlpha()
@@ -58,19 +58,20 @@ async function prepareOne(data: Buffer, format: FormatSpec): Promise<PreparedLog
   return { png, width: info.width, height: info.height, luma: weight > 0 ? sum / weight : 0.5 };
 }
 
-/** Downloads and sizes every provided logo variant. A broken logo link is reported, not fatal. */
+/** Downloads (links) or reads (stored files of a saved brand) and sizes every provided logo variant. A broken logo is reported, not fatal. */
 export async function prepareLogos(
   logos: ResolvedBrand['logos'],
   format: FormatSpec,
   fetchImage: (url: string) => Promise<Buffer>,
   warnings: RenderWarning[],
+  size: LogoSize = 'medium',
 ): Promise<PreparedLogos | null> {
   const out: PreparedLogos = {};
   for (const variant of VARIANT_ORDER) {
-    const url = logos[variant];
-    if (!url) continue;
+    const source = logos[variant === 'primary' ? 'primary' : variant];
+    if (!source) continue;
     try {
-      out[variant] = await prepareOne(await fetchImage(url), format);
+      out[variant] = await prepareOne(typeof source === 'string' ? await fetchImage(source) : source, format, size);
     } catch (err) {
       const reason = err instanceof UserFacingError ? err.message : 'the file could not be read.';
       warn(warnings, 'logo_failed', `The ${variant} logo could not be used: ${reason}`, 'Check the logo link (PNG, JPEG, WebP or AVIF), or continue without a logo.');

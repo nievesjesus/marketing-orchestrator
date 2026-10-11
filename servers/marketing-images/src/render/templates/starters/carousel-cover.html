@@ -1,0 +1,13 @@
+<!-- Starter equivalent of the built-in "carousel-cover": photo, big hook headline, series label, swipe button. -->
+<div style="display:flex;position:relative;width:{{format.width}}px;height:{{format.height}}px;background:{{brand.color.primary}};font-family:{{brand.font.body}}">
+  <img src="{{asset.background}}" style="position:absolute;left:0;top:0;width:{{format.width}}px;height:{{format.height}}px;object-fit:cover" />
+  <div style="position:absolute;left:0;top:0;width:{{format.width}}px;height:{{format.height}}px;background-image:linear-gradient(to bottom, rgba(11,16,32,0.1) 0%, rgba(11,16,32,0.6) 24%, rgba(11,16,32,0.82) 44%, rgba(11,16,32,0.94) 100%)"></div>
+  <img src="{{brand.logo}}" style="position:absolute;left:{{safe.left}}px;top:{{safe.top}}px;width:{{px.170}}px;height:{{px.70}}px;object-fit:contain;object-position:left top" />
+  <div style="position:absolute;left:{{safe.left}}px;right:{{safe.right}}px;bottom:{{safe.bottom}}px;display:flex;flex-direction:column;align-items:flex-start;color:{{brand.color.paper}}">
+    <div style="display:flex;font-family:{{brand.font.accent}};font-weight:700;font-size:{{px.32}}px;letter-spacing:{{px.4}}px;text-transform:{{brand.style.eyebrow_transform}};color:{{brand.color.accent}}">{{var.eyebrow}}</div>
+    <div data-fit data-fit-max="{{px.120}}" data-fit-min="{{px.48}}" data-fit-lines="4" style="display:flex;width:100%;margin-top:{{px.24}}px;font-family:{{brand.font.heading}};font-weight:700;line-height:1.02">{{var.headline}}</div>
+    <div data-fit data-fit-max="{{px.44}}" data-fit-min="{{px.26}}" data-fit-lines="2" style="display:flex;width:100%;margin-top:{{px.26}}px;line-height:1.3">{{var.body}}</div>
+    <div style="display:flex;margin-top:{{px.40}}px;padding:{{px.18}}px {{px.48}}px;border-radius:9999px;background:{{brand.color.accent}};color:{{brand.color.ink}};font-family:{{brand.font.accent}};font-weight:700;font-size:{{px.38}}px">{{var.cta}}</div>
+    <div style="display:flex;margin-top:{{px.30}}px;font-size:{{px.28}}px;opacity:0.85">{{var.footer}}</div>
+  </div>
+</div>

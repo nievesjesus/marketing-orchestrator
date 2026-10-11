@@ -1,0 +1,11 @@
+<!-- Starter equivalent of the built-in "carousel-point": brand-color card with a number tag, a title and an explanation. -->
+<div style="display:flex;position:relative;width:{{format.width}}px;height:{{format.height}}px;background:{{brand.color.primary}};font-family:{{brand.font.body}}">
+  <img src="{{brand.logo}}" style="position:absolute;right:{{safe.right}}px;top:{{safe.top}}px;width:{{px.170}}px;height:{{px.70}}px;object-fit:contain;object-position:right top" />
+  <div style="position:absolute;left:{{safe.left}}px;right:{{safe.right}}px;top:{{safe.top}}px;bottom:{{safe.bottom}}px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;color:{{brand.color.paper}}">
+    <div style="display:flex;padding:{{px.14}}px {{px.32}}px;border-radius:{{brand.radius}}px;background:{{brand.color.accent}};color:{{brand.color.ink}};font-family:{{brand.font.accent}};font-weight:700;font-size:{{px.44}}px;line-height:1.1">{{var.number}}</div>
+    <div style="display:flex;margin-top:{{px.34}}px;font-family:{{brand.font.accent}};font-weight:700;font-size:{{px.28}}px;letter-spacing:{{px.4}}px;text-transform:{{brand.style.eyebrow_transform}};color:{{brand.color.accent}}">{{var.eyebrow}}</div>
+    <div data-fit data-fit-max="{{px.110}}" data-fit-min="{{px.44}}" data-fit-lines="3" style="display:flex;width:100%;margin-top:{{px.18}}px;font-family:{{brand.font.heading}};font-weight:700;line-height:1.05">{{var.headline}}</div>
+    <div data-fit data-fit-max="{{px.50}}" data-fit-min="{{px.26}}" data-fit-lines="8" style="display:flex;width:100%;margin-top:{{px.30}}px;line-height:1.38">{{var.body}}</div>
+    <div style="display:flex;margin-top:{{px.36}}px;font-size:{{px.28}}px;opacity:0.85">{{var.footer}}</div>
+  </div>
+</div>

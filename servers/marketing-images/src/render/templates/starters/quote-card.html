@@ -1,0 +1,10 @@
+<!-- Starter equivalent of the built-in "quote-card": brand-color card, accent quotation mark, the quote, the author. -->
+<div style="display:flex;position:relative;width:{{format.width}}px;height:{{format.height}}px;background:{{brand.color.primary}};font-family:{{brand.font.body}}">
+  <img src="{{brand.logo}}" style="position:absolute;right:{{safe.right}}px;bottom:{{safe.bottom}}px;width:{{px.170}}px;height:{{px.70}}px;object-fit:contain;object-position:right bottom" />
+  <div style="position:absolute;left:{{safe.left}}px;right:{{safe.right}}px;top:{{safe.top}}px;bottom:{{safe.bottom}}px;display:flex;flex-direction:column;justify-content:center;color:{{brand.color.paper}}">
+    <div data-decor style="display:flex;font-family:{{brand.font.heading}};font-weight:700;font-size:{{px.200}}px;height:{{px.120}}px;line-height:1;color:{{brand.color.accent}}">&ldquo;</div>
+    <div style="display:flex;font-family:{{brand.font.accent}};font-weight:700;font-size:{{px.28}}px;letter-spacing:{{px.4}}px;text-transform:{{brand.style.eyebrow_transform}};color:{{brand.color.accent}}">{{var.eyebrow}}</div>
+    <div data-fit data-fit-max="{{px.100}}" data-fit-min="{{px.34}}" data-fit-lines="7" style="display:flex;margin-top:{{px.20}}px;font-family:{{brand.font.heading}};line-height:1.18">{{var.headline}}</div>
+    <div style="display:flex;margin-top:{{px.44}}px;font-family:{{brand.font.accent}};font-weight:700;font-size:{{px.36}}px;color:{{brand.color.accent}}">{{var.footer}}</div>
+  </div>
+</div>

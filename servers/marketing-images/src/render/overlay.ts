@@ -2,11 +2,12 @@ import { Resvg } from '@resvg/resvg-js';
 // Satori renders a plain { type, props } element tree (no React needed) to an SVG string.
 // Docs: https://github.com/vercel/satori#documentation  ·  CSS support: https://github.com/vercel/satori#css
 import satori from 'satori';
+import { RADIUS_PX, type BrandStyle } from './brand.js';
 import { rgba } from './color.js';
 import type { Appearance } from './contrast.js';
 import type { FontFace } from './fonts.js';
-import type { FormatSpec, Rect } from './formats.js';
-import type { Layout, PlacedLine } from './layout.js';
+import { scaleOf, type FormatSpec, type Rect } from './formats.js';
+import type { Layout, PlacedButton, PlacedLine } from './layout.js';
 
 /**
  * Builds the transparent overlay (scrim + text + button) as Satori elements, rasterizes it with resvg
@@ -99,16 +100,74 @@ export interface OverlayArgs {
   format: FormatSpec;
   layout: Layout;
   look: Appearance;
+  /** Brand style (button shape, corner radius). Defaults: pill buttons, medium radius. */
+  style?: BrandStyle;
+}
+
+function pills(layout: Layout): PlacedButton[] {
+  return [layout.chip, layout.badge, layout.button].filter((p): p is PlacedButton => p !== undefined);
 }
 
 function usedFaces(layout: Layout): FontFace[] {
   const faces = new Map<string, FontFace>();
-  const lines = [...layout.lines, ...(layout.button ? [layout.button.line] : [])];
+  const lines = [...layout.lines, ...pills(layout).map((p) => p.line)];
   for (const l of lines) faces.set(l.face.file, l.face);
   return [...faces.values()];
 }
 
-export async function renderOverlay({ format, layout, look }: OverlayArgs): Promise<Buffer> {
+/**
+ * Corner radius of a filled shape (px). The CTA button and the headline badge follow the brand's `button` style
+ * (pill / rounded / square); the number tag follows the brand's `radius`. `rounded` always has some rounding.
+ */
+export function shapeRadius(kind: 'button' | 'chip' | 'badge', style: BrandStyle, h: number, scale: number): number {
+  const preset = (): number => (style.radius === 'pill' ? h / 2 : RADIUS_PX[style.radius] * scale);
+  let radius: number;
+  if (kind === 'chip') radius = preset();
+  else if (style.button === 'square') radius = 0;
+  else if (style.button === 'rounded' || style.button === 'underline') {
+    const base = style.radius === 'pill' ? RADIUS_PX.large : style.radius === 'none' ? RADIUS_PX.small : RADIUS_PX[style.radius];
+    radius = base * scale;
+  } else radius = h / 2;
+  return Math.round(Math.min(radius, h / 2));
+}
+
+function pillElement(b: PlacedButton, look: Appearance, style: BrandStyle, scale: number): El[] {
+  const kind = b.kind ?? 'button';
+  if (b.underline) {
+    // Text-only button: ink text with an accent bar under it.
+    return [
+      lineElement(b.line, look.ink),
+      { type: 'div', props: { style: { position: 'absolute', left: b.x, top: b.underline.y, width: b.w, height: b.underline.h, borderRadius: Math.round(b.underline.h / 2), backgroundColor: look.accent } } },
+    ];
+  }
+  return [
+    {
+      type: 'div',
+      props: {
+        style: {
+          position: 'absolute',
+          left: b.x,
+          top: b.y,
+          width: b.w,
+          height: b.h,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: shapeRadius(kind, style, b.h, scale),
+          backgroundColor: look.buttonBg,
+        },
+        children: {
+          type: 'div',
+          props: { style: { ...textStyle(b.line, look.buttonText), justifyContent: 'center' }, children: b.line.text },
+        },
+      },
+    },
+  ];
+}
+
+export async function renderOverlay({ format, layout, look, style }: OverlayArgs): Promise<Buffer> {
+  const brandStyle: BrandStyle = style ?? { radius: 'medium', button: 'pill', eyebrow_case: 'upper', logo_size: 'medium', scrim: 'auto' };
+  const scale = scaleOf(format);
   const children: El[] = [];
 
   if (look.scrim) {
@@ -129,30 +188,7 @@ export async function renderOverlay({ format, layout, look }: OverlayArgs): Prom
 
   for (const line of layout.lines) children.push(lineElement(line, colorFor(line, look)));
 
-  if (layout.button) {
-    const b = layout.button;
-    children.push({
-      type: 'div',
-      props: {
-        style: {
-          position: 'absolute',
-          left: b.x,
-          top: b.y,
-          width: b.w,
-          height: b.h,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: Math.round(b.h / 2),
-          backgroundColor: look.buttonBg,
-        },
-        children: {
-          type: 'div',
-          props: { style: { ...textStyle(b.line, look.buttonText), justifyContent: 'center' }, children: b.line.text },
-        },
-      },
-    });
-  }
+  for (const pill of pills(layout)) children.push(...pillElement(pill, look, brandStyle, scale));
 
   const tree: El = {
     type: 'div',

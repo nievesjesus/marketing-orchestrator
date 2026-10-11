@@ -1,0 +1,71 @@
+import type { TemplateSpec } from './types.js';
+
+/** A numbered point of a carousel: number tag, title, explanation. */
+export const carouselPoint: TemplateSpec = {
+  id: 'carousel-point',
+  title: 'Carousel point',
+  description:
+    'Middle slide of a carousel: brand-color card with a small accent number tag, a title and a longer explanation (up to about 9 lines); logo in a corner.',
+  best_for: 'Tips, steps, list items, one idea per slide. `number` is the tag ("1", "02"), `headline` the title, `body` the explanation. compose_carousel numbers these slides automatically.',
+  supports: ['number', 'eyebrow', 'headline', 'body', 'footer'],
+  background: 'brand-primary',
+  defaults: { align: 'left', textPosition: 'center' },
+  logo: { corner: 'top-right' },
+  bodyShare: 0.62,
+  block: {
+    maxHeight: { square: 0.78, portrait: 0.74, landscape: 0.86 },
+    maxWidth: { square: 1, portrait: 1, landscape: 0.8 },
+  },
+  lead: {
+    kind: 'chip',
+    paddingX: 0.9,
+    paddingY: 0.42,
+    gapAfter: 34,
+    slot: { role: 'label', font: 'accent', weight: 700, maxLines: 1, maxSize: 44, lineHeight: 1.1, tone: 'ink', gapBefore: 0 },
+  },
+  slots: {
+    eyebrow: {
+      role: 'label',
+      font: 'accent',
+      weight: 700,
+      maxLines: 1,
+      maxSize: 28,
+      lineHeight: 1.2,
+      letterSpacing: 0.14,
+      uppercase: true,
+      tone: 'accent',
+      gapBefore: 0,
+    },
+    headline: {
+      role: 'headline',
+      font: 'heading',
+      weight: 700,
+      maxLines: 3,
+      maxSize: 110,
+      lineHeight: 1.05,
+      balance: true,
+      tone: 'ink',
+      gapBefore: 18,
+    },
+    body: {
+      role: 'body',
+      font: 'body',
+      weight: 400,
+      maxLines: 9,
+      maxSize: 50,
+      lineHeight: 1.38,
+      tone: 'ink',
+      gapBefore: 30,
+    },
+    footer: {
+      role: 'label',
+      font: 'body',
+      weight: 400,
+      maxLines: 1,
+      maxSize: 28,
+      lineHeight: 1.25,
+      tone: 'muted',
+      gapBefore: 36,
+    },
+  },
+};

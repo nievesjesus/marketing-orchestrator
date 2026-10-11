@@ -64,6 +64,8 @@ async function main(): Promise<void> {
       .catch((err: unknown) => logger.error('shutdown_error', serializeError(err)))
       .finally(() => {
         ctx.ledger.close();
+        ctx.templates.close();
+        ctx.brands.close();
         process.exit(0);
       });
   };

@@ -20,7 +20,7 @@ import { isBlockedAddress, isLoopbackAddress } from './ip.js';
  */
 
 export type FetchKind = 'image' | 'font';
-export type FetchedFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'ttf' | 'otf';
+export type FetchedFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'svg' | 'ttf' | 'otf';
 
 export interface FetchSafeOptions {
   kind: FetchKind;
@@ -28,6 +28,8 @@ export interface FetchSafeOptions {
   timeoutMs?: number;
   maxRedirects?: number;
   allowInsecureLocalhost?: boolean;
+  /** Accept SVG as an image (off by default: only brand logos opt in, and they are rasterized by the caller). */
+  allowSvg?: boolean;
 }
 
 export interface FetchSafeResult {
@@ -178,7 +180,7 @@ function contentTypeAllowed(header: string | undefined, kind: FetchKind): boolea
 }
 
 /** Identify the file from its first bytes. Returns null for anything we do not accept. */
-export function sniffFormat(buf: Uint8Array, kind: FetchKind): { format: FetchedFormat; mime: string } | null {
+export function sniffFormat(buf: Uint8Array, kind: FetchKind, allowSvg = false): { format: FetchedFormat; mime: string } | null {
   const at = (i: number): number => buf[i] ?? -1;
   const ascii = (start: number, text: string): boolean => [...text].every((ch, i) => at(start + i) === ch.charCodeAt(0));
 
@@ -195,6 +197,7 @@ export function sniffFormat(buf: Uint8Array, kind: FetchKind): { format: Fetched
         if (ascii(i, 'avif') || ascii(i, 'avis')) return { format: 'avif', mime: 'image/avif' };
       }
     }
+    if (allowSvg && looksLikeSvg(buf)) return { format: 'svg', mime: 'image/svg+xml' };
     return null;
   }
   if ((at(0) === 0x00 && at(1) === 0x01 && at(2) === 0x00 && at(3) === 0x00) || ascii(0, 'true')) {
@@ -202,6 +205,13 @@ export function sniffFormat(buf: Uint8Array, kind: FetchKind): { format: Fetched
   }
   if (ascii(0, 'OTTO')) return { format: 'otf', mime: 'font/otf' };
   return null;
+}
+
+/** Text that starts (after a BOM, whitespace, an XML declaration or comments) with an `<svg` element. */
+function looksLikeSvg(buf: Uint8Array): boolean {
+  const head = Buffer.from(buf.subarray(0, 2048)).toString('utf8').replace(/^\uFEFF/, '').trimStart();
+  const stripped = head.replace(/^(?:<\?xml[^>]*\?>\s*|<!--[\s\S]*?-->\s*)+/i, '');
+  return /^<svg[\s>]/i.test(stripped);
 }
 
 function notSupported(kind: FetchKind, buf: Uint8Array): UserFacingError {
@@ -309,7 +319,7 @@ export async function fetchSafe(
         chunks.push(chunk);
       }
       const data = Buffer.concat(chunks);
-      const sniffed = sniffFormat(data, options.kind);
+      const sniffed = sniffFormat(data, options.kind, options.allowSvg === true);
       if (!sniffed) throw notSupported(options.kind, data);
       return { data, contentType: sniffed.mime, format: sniffed.format };
     }

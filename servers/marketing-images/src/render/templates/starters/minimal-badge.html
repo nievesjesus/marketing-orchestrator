@@ -1,0 +1,12 @@
+<!-- Starter equivalent of the built-in "minimal-badge": clean photo, small accent badge with a label or price, optional caption. -->
+<div style="display:flex;position:relative;width:{{format.width}}px;height:{{format.height}}px;background:{{brand.color.primary}};font-family:{{brand.font.body}}">
+  <img src="{{asset.background}}" style="position:absolute;left:0;top:0;width:{{format.width}}px;height:{{format.height}}px;object-fit:cover" />
+  <div style="position:absolute;left:0;top:0;width:{{format.width}}px;height:{{format.height}}px;background-image:linear-gradient(to bottom, rgba(11,16,32,0) 22%, rgba(11,16,32,0.55) 48%, rgba(11,16,32,0.8) 66%, rgba(11,16,32,0.9) 100%)"></div>
+  <img src="{{brand.logo}}" style="position:absolute;left:{{safe.left}}px;top:{{safe.top}}px;width:{{px.170}}px;height:{{px.70}}px;object-fit:contain;object-position:left top" />
+  <div style="position:absolute;left:{{safe.left}}px;right:{{safe.right}}px;bottom:{{safe.bottom}}px;display:flex;flex-direction:column;align-items:flex-start;color:{{brand.color.paper}}">
+    <div style="display:flex;font-family:{{brand.font.accent}};font-weight:700;font-size:{{px.28}}px;letter-spacing:{{px.4}}px;text-transform:{{brand.style.eyebrow_transform}};color:{{brand.color.accent}}">{{var.eyebrow}}</div>
+    <div style="display:flex;margin-top:{{px.20}}px;padding:{{px.20}}px {{px.56}}px;border-radius:9999px;background:{{brand.color.accent}};color:{{brand.color.ink}};font-family:{{brand.font.accent}};font-weight:700;font-size:{{px.72}}px;line-height:1.1">{{var.headline}}</div>
+    <div style="display:flex;margin-top:{{px.22}}px;font-size:{{px.38}}px;line-height:1.3;max-width:{{px.760}}px">{{var.body}}</div>
+    <div style="display:flex;margin-top:{{px.28}}px;font-size:{{px.26}}px;opacity:0.85">{{var.footer}}</div>
+  </div>
+</div>

@@ -104,6 +104,8 @@ export async function startTestServer(opts: { configExtra?: Record<string, strin
     async close() {
       await running.close();
       ctx.ledger.close();
+      ctx.templates.close();
+      ctx.brands.close();
       cleanup();
     },
   };

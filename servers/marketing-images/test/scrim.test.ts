@@ -3,6 +3,7 @@ import { composePost } from '../src/render/compose.js';
 import { FORMATS, FORMAT_NAMES, type FormatName } from '../src/render/formats.js';
 import type { Layout } from '../src/render/layout.js';
 import { scrimGradient } from '../src/render/overlay.js';
+import { BUILTIN_INFO } from '../src/render/templates/catalog.js';
 import { fonts, makePhoto, pixelAt, pixels, solidImage, type Pixels } from './helpers.js';
 
 const luma = (p: Pixels, x: number, y: number): number => {
@@ -38,14 +39,14 @@ const maxStep = (rows: number[]): { step: number; at: number } => {
   return { step, at };
 };
 
-async function render(format: FormatName, image: Buffer, scrim: 'auto' | 'none' | 'strong' = 'auto'): Promise<Pixels> {
+async function render(format: FormatName, image: Buffer, scrim: 'auto' | 'soft' | 'none' | 'strong' | undefined = 'auto', template = 'photo-headline'): Promise<Pixels> {
   const out = await composePost(
     {
-      template: 'photo-headline',
+      template,
       format,
-      texts: { eyebrow: 'Nueva temporada', headline: 'Café de especialidad', body: 'Ven a probar el menú de otoño.', footer: 'cafeejemplo.com' },
+      texts: template === 'photo-headline' ? { eyebrow: 'Nueva temporada', headline: 'Café de especialidad', body: 'Ven a probar el menú de otoño.', footer: 'cafeejemplo.com' } : BUILTIN_INFO[template]!.sample,
       background: { image_url: 'https://assets.example.test/bg' },
-      options: { output: 'png', scrim },
+      options: { output: 'png', ...(scrim ? { scrim } : {}) },
     },
     { fonts: fonts(), fetchImage: async () => image },
   );
@@ -81,6 +82,52 @@ describe('photo-headline scrim is a smooth vertical gradient (no bands, no hard 
     const rows = marginColumn(await render('portrait', await solidImage(2000, 2000, '#f2f2f2'), 'strong'));
     expect(maxStep(rows).step).toBeLessThanOrEqual(2.5);
     expect(rows[rows.length - 1] as number).toBeLessThan(60);
+  });
+});
+
+describe.each(['carousel-cover', 'minimal-badge'])('%s (photo-based): the same smooth scrim, no bands, no hard edges', (template) => {
+  // minimal-badge defaults to a soft scrim (lighter), carousel-cover to auto
+  const dark = template === 'minimal-badge' ? 130 : 110;
+
+  it.each(FORMAT_NAMES)('%s: flat bright photo -> only the scrim changes it, smoothly and downward', async (format) => {
+    const p = await render(format, await solidImage(2000, 2000, '#f2f2f2'), undefined, template);
+    const rows = marginColumn(p);
+    const { step, at } = maxStep(rows);
+    expect(step, `largest row-to-row jump ${step.toFixed(2)} at y=${at}`).toBeLessThanOrEqual(2.5);
+    expect(rows[2] as number).toBeGreaterThan(236);
+    expect(rows[rows.length - 1] as number).toBeLessThan(dark);
+    for (let y = 1; y < rows.length; y += 1) expect(rows[y] as number, `rise at y=${y}`).toBeLessThanOrEqual((rows[y - 1] as number) + 0.01);
+    const top = rows[2] as number;
+    const bottom = rows[rows.length - 1] as number;
+    const start = rows.findIndex((v) => v < top - 2);
+    const end = rows.length - 1 - [...rows].reverse().findIndex((v) => v > bottom + 2);
+    expect((end - start) / rows.length, `fade from y=${start} to y=${end}`).toBeGreaterThan(0.25);
+  });
+
+  it.each(FORMAT_NAMES)('%s: on a photo-like background there is no jump between adjacent rows', async (format) => {
+    const p = await render(format, await makePhoto(2000, 1500), undefined, template);
+    const { step, at } = maxStep(marginColumn(p));
+    expect(step, `largest row-to-row jump ${step.toFixed(2)} at y=${at}`).toBeLessThan(3);
+  });
+});
+
+describe('split (photo-based): the photo is left untouched and meets the text panel at one intentional straight edge', () => {
+  it.each(FORMAT_NAMES)('%s: no scrim over the photo part', async (format) => {
+    const out = await composePost(
+      { template: 'split', format, texts: BUILTIN_INFO.split!.sample, background: { image_url: 'https://assets.example.test/bg' }, brand: { colors: { primary: '#14213d' } }, options: { output: 'png' } },
+      { fonts: fonts(), fetchImage: async () => solidImage(2000, 2000, '#f2f2f2') },
+    );
+    expect(out.applied.scrim).toBe('none');
+    const p = await pixels(out.data);
+    const F = FORMATS[format];
+    // sample a ring of points well inside the photo part: all stay the photo's own color (the logo corner aside)
+    const photoSide = format === 'landscape' || format === 'link' ? 'left' : format === 'story' ? 'bottom' : 'top';
+    const probe = (fx: number, fy: number): number => {
+      const x = photoSide === 'left' ? fx * F.width * 0.4 + F.width * 0.05 : fx * F.width * 0.9 + F.width * 0.05;
+      const y = photoSide === 'left' ? fy * F.height * 0.9 + F.height * 0.05 : photoSide === 'top' ? fy * F.height * 0.3 + F.height * 0.05 : F.height - (fy * F.height * 0.3 + F.height * 0.05);
+      return luma(p, Math.floor(x), Math.floor(y));
+    };
+    for (const [fx, fy] of [[0.5, 0.5], [0.3, 0.8], [0.8, 0.6], [0.6, 0.9]] as const) expect(probe(fx, fy), `${fx},${fy}`).toBeGreaterThan(236);
   });
 });
 
