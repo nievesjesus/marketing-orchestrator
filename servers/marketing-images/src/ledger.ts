@@ -120,8 +120,13 @@ export class Ledger {
     return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1)).toISOString();
   }
 
+  private inTransaction = false;
+
+  /** Re-entrant: a call made while a transaction is open joins it (the outermost call commits or rolls back). */
   private transaction<T>(fn: () => T): T {
+    if (this.inTransaction) return fn();
     this.db.exec('BEGIN IMMEDIATE');
+    this.inTransaction = true;
     try {
       const result = fn();
       this.db.exec('COMMIT');
@@ -129,6 +134,8 @@ export class Ledger {
     } catch (err) {
       this.db.exec('ROLLBACK');
       throw err;
+    } finally {
+      this.inTransaction = false;
     }
   }
 
@@ -270,11 +277,198 @@ export class Ledger {
     this.db.prepare('DELETE FROM reservations WHERE id = ?').run(reservationId);
   }
 
-  /** Drop reservations older than `maxAgeMs` (crashed requests). Returns how many were released. */
+  /**
+   * Drop reservations older than `maxAgeMs` (crashed requests). Reservations held by a live job are kept:
+   * `expireJobs` refunds those after the job's own, longer lifetime. Returns how many were released.
+   */
   expireReservations(maxAgeMs: number): number {
-    const result = this.db.prepare('DELETE FROM reservations WHERE created_at < ?').run(this.now() - maxAgeMs);
+    const result = this.db
+      .prepare(
+        `DELETE FROM reservations WHERE created_at < ?
+           AND id NOT IN (SELECT reservation_id FROM jobs WHERE reservation_id IS NOT NULL AND status IN ('pending', 'finishing'))`,
+      )
+      .run(this.now() - maxAgeMs);
     return Number(result.changes);
   }
+
+  // ---- Jobs (DESIGN section 8) ------------------------------------------------------------------
+  // A job is a provider request that outlived the synchronous wait. It keeps its reservation until it is
+  // settled (completeJob), released (failJob) or refunded by the 24 h sweep (expireJobs). Rows are always
+  // read through the owner (`user`): one person can never see or finish another person's job.
+  // `upstream` is opaque JSON owned by the job runner (provider handle, pricing context and, once done, the result).
+
+  createJob(input: NewJob): JobRecord {
+    const id = randomUUID();
+    const now = this.now();
+    this.db
+      .prepare(
+        `INSERT INTO jobs (id, user, provider, model, status, upstream, request_summary, reservation_id, reserved_usd_micros, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        input.user,
+        input.provider,
+        input.model,
+        JSON.stringify(input.upstream),
+        JSON.stringify(input.requestSummary ?? {}),
+        input.reservationId,
+        toMicros(input.reservedUsd),
+        now,
+        now,
+      );
+    return this.jobById(id) as JobRecord;
+  }
+
+  /** The job, only if it belongs to `user`. */
+  getJob(user: string, id: string): JobRecord | undefined {
+    const job = this.jobById(id);
+    return job && job.user === user ? job : undefined;
+  }
+
+  private jobById(id: string): JobRecord | undefined {
+    const row = this.db.prepare('SELECT * FROM jobs WHERE id = ?').get(id) as JobRow | undefined;
+    return row ? toJobRecord(row) : undefined;
+  }
+
+  /**
+   * Take the exclusive right to finish a job (download + settle), so two concurrent `get_job` calls cannot both
+   * book it. A claim that was never completed (crash) can be taken over after `staleMs`.
+   */
+  claimJob(user: string, id: string, staleMs = 2 * 60 * 1000): boolean {
+    const now = this.now();
+    const result = this.db
+      .prepare(
+        `UPDATE jobs SET status = 'finishing', updated_at = ?
+         WHERE id = ? AND user = ? AND (status = 'pending' OR (status = 'finishing' AND updated_at < ?))`,
+      )
+      .run(now, id, user, now - staleMs);
+    return Number(result.changes) === 1;
+  }
+
+  /** Give a claim back (the check failed for a transient reason); the job can be polled again. */
+  releaseClaim(id: string): void {
+    this.db.prepare(`UPDATE jobs SET status = 'pending', updated_at = ? WHERE id = ? AND status = 'finishing'`).run(this.now(), id);
+  }
+
+  /** Merge fields into the job's `upstream` JSON (for example the latest known cost). */
+  updateJobUpstream(id: string, patch: Record<string, unknown>): void {
+    this.transaction(() => {
+      const job = this.jobById(id);
+      if (!job) return;
+      this.db.prepare('UPDATE jobs SET upstream = ?, updated_at = ? WHERE id = ?').run(JSON.stringify({ ...job.upstream, ...patch }), this.now(), id);
+    });
+  }
+
+  /** Settle the job's reservation and store the final result in one transaction. */
+  completeJob(id: string, actual: Settlement, result: Record<string, unknown>): void {
+    this.transaction(() => {
+      const job = this.jobById(id);
+      if (!job) throw new Error('completeJob: unknown job');
+      if (job.status === 'done') return;
+      if (job.reservation_id) {
+        const held = this.db.prepare('SELECT 1 AS one FROM reservations WHERE id = ?').get(job.reservation_id);
+        if (held) this.settle(job.reservation_id, actual);
+      }
+      this.db.prepare(`UPDATE jobs SET status = 'done', upstream = ?, updated_at = ? WHERE id = ?`).run(JSON.stringify({ ...job.upstream, result }), this.now(), id);
+    });
+  }
+
+  /** Refund the job's reservation and remember why it failed. */
+  failJob(id: string, error: { code: string; message: string; suggestion?: string }): void {
+    this.transaction(() => {
+      const job = this.jobById(id);
+      if (!job || job.status === 'done' || job.status === 'failed' || job.status === 'expired') return;
+      if (job.reservation_id) this.release(job.reservation_id);
+      this.db.prepare(`UPDATE jobs SET status = 'failed', upstream = ?, updated_at = ? WHERE id = ?`).run(JSON.stringify({ ...job.upstream, error }), this.now(), id);
+    });
+  }
+
+  /**
+   * Hourly sweep: jobs still unfinished after `maxAgeMs` (24 h) are marked expired and their reservation is
+   * refunded; rows older than twice that are deleted. Returns the counts.
+   */
+  expireJobs(maxAgeMs: number): { expired: number; deleted: number } {
+    return this.transaction(() => {
+      const now = this.now();
+      const stale = this.db
+        .prepare(`SELECT id, reservation_id FROM jobs WHERE status IN ('pending', 'finishing') AND created_at < ?`)
+        .all(now - maxAgeMs) as { id: string; reservation_id: string | null }[];
+      for (const job of stale) {
+        if (job.reservation_id) this.release(job.reservation_id);
+        this.db.prepare(`UPDATE jobs SET status = 'expired', updated_at = ? WHERE id = ?`).run(now, job.id);
+      }
+      const purged = this.db.prepare('DELETE FROM jobs WHERE created_at < ?').run(now - 2 * maxAgeMs);
+      return { expired: stale.length, deleted: Number(purged.changes) };
+    });
+  }
+}
+
+export type JobStatus = 'pending' | 'finishing' | 'done' | 'failed' | 'expired';
+
+export interface NewJob {
+  user: string;
+  provider: string;
+  model: string;
+  upstream: Record<string, unknown>;
+  /** Non-sensitive summary of what was asked (never the prompt text). */
+  requestSummary?: Record<string, unknown>;
+  reservationId: string | null;
+  reservedUsd: number;
+}
+
+export interface JobRecord {
+  id: string;
+  user: string;
+  provider: string;
+  model: string;
+  status: JobStatus;
+  upstream: Record<string, unknown>;
+  request_summary: Record<string, unknown>;
+  reservation_id: string | null;
+  reserved_usd: number;
+  created_at: number;
+  updated_at: number;
+}
+
+interface JobRow {
+  id: string;
+  user: string;
+  provider: string;
+  model: string;
+  status: string;
+  upstream: string | null;
+  request_summary: string | null;
+  reservation_id: string | null;
+  reserved_usd_micros: number;
+  created_at: number;
+  updated_at: number;
+}
+
+function parseJson(text: string | null): Record<string, unknown> {
+  if (!text) return {};
+  try {
+    const value: unknown = JSON.parse(text);
+    return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function toJobRecord(row: JobRow): JobRecord {
+  return {
+    id: row.id,
+    user: row.user,
+    provider: row.provider,
+    model: row.model,
+    status: row.status as JobStatus,
+    upstream: parseJson(row.upstream),
+    request_summary: parseJson(row.request_summary),
+    reservation_id: row.reservation_id,
+    reserved_usd: fromMicros(row.reserved_usd_micros),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
 }
 
 function round2(value: number): number {
