@@ -28,6 +28,36 @@ describe('buildPrompt (DESIGN section 5)', () => {
     expect(buildPrompt({ task: 'generate', text: 'x', style: 'warm tones, minimalist', extraReferences: 0 }, GEMINI).prompt).toContain('Visual style: warm tones, minimalist.');
   });
 
+  it('brand photo style and palette come after the style, as plain sentences; an explicit style is kept and wins', () => {
+    const base = { task: 'generate' as const, text: 'a bowl of soup', extraReferences: 0, brandPhotoStyle: 'warm natural light, minimal', brandPalette: 'dark blue (#1F3A5F), amber (#F2A541)' };
+    const plain = buildPrompt(base, GEMINI).prompt;
+    expect(plain).toContain('Brand photo style: warm natural light, minimal.');
+    expect(plain).toContain('Brand palette: dark blue (#1F3A5F), amber (#F2A541).');
+    expect(plain).not.toContain('Visual style:');
+    expect(plain).toContain('No text, letters, logos or watermarks.');
+
+    const styled = buildPrompt({ ...base, style: 'dark and moody' }, GEMINI).prompt;
+    expect(styled).toContain('Visual style: dark and moody.');
+    expect(styled).toContain('Brand photo style (the visual style above wins if they differ): warm natural light, minimal.');
+    expect(styled.indexOf('Visual style:')).toBeLessThan(styled.indexOf('Brand photo style'));
+    expect(styled.indexOf('Brand photo style')).toBeLessThan(styled.indexOf('Brand palette:'));
+  });
+
+  it('brand hints do not change the text rules: text_on_image still replaces the "no text" default, edits keep "unchanged"', () => {
+    const withText = buildPrompt({ task: 'generate', text: 'a shop sign', textOnImage: 'Abierto', extraReferences: 0, brandPalette: 'amber (#F2A541)' }, GEMINI).prompt;
+    expect(withText).toContain('Brand palette: amber (#F2A541).');
+    expect(withText).toContain('Render this exact text');
+    expect(withText).not.toContain('No text, letters, logos or watermarks.');
+    const edit = buildPrompt({ task: 'edit', text: 'make it warmer', extraReferences: 0, brandPhotoStyle: 'beige tones' }, GEMINI).prompt;
+    expect(edit.indexOf('Keep everything the instruction does not mention unchanged')).toBeLessThan(edit.indexOf('Brand photo style: beige tones.'));
+    expect(edit).not.toContain('No text, letters');
+  });
+
+  it('empty brand hints add nothing', () => {
+    const plain = buildPrompt({ task: 'generate', text: 'x', extraReferences: 0 }, GEMINI).prompt;
+    expect(buildPrompt({ task: 'generate', text: 'x', extraReferences: 0, brandPhotoStyle: '  ', brandPalette: '' }, GEMINI).prompt).toBe(plain);
+  });
+
   it('a negative prompt is passed natively only to models that support it; otherwise it is merged as "Avoid"', () => {
     const merged = buildPrompt({ task: 'generate', text: 'x', negativePrompt: 'blurry', extraReferences: 0 }, GEMINI);
     expect(merged.negativePrompt).toBeUndefined();

@@ -14,6 +14,10 @@ export interface PromptInput {
   /** `prompt` (generate) or `instruction` (edit). */
   text: string;
   style?: string | undefined;
+  /** A saved brand's `style.photo_style`. Added after `style` (which wins where they disagree). */
+  brandPhotoStyle?: string | undefined;
+  /** A saved brand's palette phrase, e.g. "dark blue (#1F3A5F), amber (#F2A541)". */
+  brandPalette?: string | undefined;
   textOnImage?: string | undefined;
   leaveSpace?: LeaveSpace | undefined;
   negativePrompt?: string | undefined;
@@ -43,7 +47,12 @@ export function buildPrompt(input: PromptInput, model: ModelEntry): BuiltPrompt 
     }
   }
 
-  if (input.style?.trim()) parts.push(`Visual style: ${input.style.trim()}.`);
+  const style = input.style?.trim();
+  if (style) parts.push(`Visual style: ${style}.`);
+  const brandPhotoStyle = input.brandPhotoStyle?.trim();
+  if (brandPhotoStyle) parts.push(style ? `Brand photo style (the visual style above wins if they differ): ${brandPhotoStyle}.` : `Brand photo style: ${brandPhotoStyle}.`);
+  const brandPalette = input.brandPalette?.trim();
+  if (brandPalette) parts.push(`Brand palette: ${brandPalette}.`);
   if (input.leaveSpace) parts.push(`Keep the ${input.leaveSpace} area calm, no text.`);
 
   if (input.textOnImage?.trim()) {

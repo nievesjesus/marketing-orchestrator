@@ -5,6 +5,7 @@ import type { Candidate, RoutePlan } from '../router.js';
 import { readStoredImage, type DeliveredImage, type DoneOutcome, type ImageOutcome } from '../providers/orchestrator.js';
 import { makePreview, PreviewBudget } from '../render/preview.js';
 import { jsonResult, type LogMeta } from './run.js';
+import { brandArgSchema } from './shared.js';
 
 /** Zod fragments shared by generate_image, edit_image and estimate_cost. */
 export const providerField = z
@@ -24,6 +25,14 @@ export const sizeField = z
   .describe('Resolution tier for models that have one (1K about 1000 px on the long side, 2K about 2000 px, costs more). Default 1K, which is plenty for social posts.');
 
 export const numImagesField = z.number().int().min(1).max(4).default(1).describe('How many alternatives to make (1-4). Each one is billed.');
+
+export const brandField = brandArgSchema
+  .optional()
+  .describe(
+    'The user’s brand, to make the picture look like theirs: EITHER the slug of a saved brand (a string such as "nova-clinic"; own brands first, then shared ones; see list_brands) ' +
+      'OR an inline object { colors, style: { photo_style } }. The brand’s photo style and a short palette phrase (color names and hex) are added to the prompt; ' +
+      'an explicit `style` still wins where they differ. Fonts, logos and layout rules only matter later, in compose_post. Leave empty if the user has no saved brand.',
+  );
 
 /** Logging helper: provider, model and rule as the router picks them (never prompts). */
 export function logCandidate(meta: LogMeta) {

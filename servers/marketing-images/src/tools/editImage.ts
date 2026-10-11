@@ -1,12 +1,13 @@
 // registerTool, annotations and image content blocks: https://ts.sdk.modelcontextprotocol.io/v2/servers/tools.md
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
+import { resolveBrandImageHints } from '../brand-prompt.js';
 import type { AppContext } from '../context.js';
 import { RATIOS } from '../models.js';
 import { adaptersFor } from '../providers/index.js';
 import { defaultDeps, runImageRequest } from '../providers/orchestrator.js';
 import { assertPromptAllowed } from '../safety.js';
-import { logCandidate, modelField, numImagesField, outcomeResult, providerField, sizeField } from './imageResult.js';
+import { brandField, logCandidate, modelField, numImagesField, outcomeResult, providerField, sizeField } from './imageResult.js';
 import { runTool } from './run.js';
 
 const inputSchema = z.object({
@@ -19,7 +20,8 @@ const inputSchema = z.object({
   num_images: numImagesField,
   reference_image_urls: z.array(z.url()).max(13).optional().describe('Optional extra images to borrow from (a logo, a product, a style), public https links.'),
   text_on_image: z.string().max(150).optional().describe('ONLY if the user explicitly wants words drawn into the picture. Leave empty otherwise; use compose_post for headlines.'),
-  style: z.string().max(200).optional().describe('Optional visual style to apply, in a few words.'),
+  style: z.string().max(200).optional().describe('Optional visual style to apply, in a few words. It wins over the brand’s photo style where they differ.'),
+  brand: brandField,
   seed: z.number().int().min(0).max(2147483647).optional(),
 });
 
@@ -35,6 +37,7 @@ export function registerEditImage(server: McpServer, ctx: AppContext, user: stri
         'The original is never changed; the edited picture is a new link kept for about 30 days. ' +
         'Asking to add a real person, another company’s logo or a cartoon character is refused. ' +
         'The answer says which provider was used and why another was tried first (`fallback_from`). If `status` is "pending", call get_job with the `job_id` after about 15 seconds. ' +
+        'Pass `brand` (a saved brand’s slug, see list_brands, or an inline object) to steer the edit toward the company’s photo style and colors. ' +
         'To put a headline on the result, use compose_post with the new link as the background.',
       inputSchema,
       annotations: { title: 'Edit or restyle a photo with AI', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -42,7 +45,9 @@ export function registerEditImage(server: McpServer, ctx: AppContext, user: stri
     async (args) =>
       runTool(ctx, user, 'edit_image', async (meta) => {
         meta.n = args.num_images;
-        assertPromptAllowed('edit', [args.instruction, args.style, args.text_on_image]);
+        const brand = resolveBrandImageHints(ctx, user, args.brand);
+        if (args.brand !== undefined) meta.brand = typeof args.brand === 'string' ? args.brand : 'inline';
+        assertPromptAllowed('edit', [args.instruction, args.style, args.text_on_image, brand?.photoStyle]);
 
         const outcome = await runImageRequest(
           ctx,
@@ -56,6 +61,8 @@ export function registerEditImage(server: McpServer, ctx: AppContext, user: stri
             size: args.size,
             numImages: args.num_images,
             style: args.style,
+            brandPhotoStyle: brand?.photoStyle,
+            brandPalette: brand?.palette,
             textOnImage: args.text_on_image,
             references: args.reference_image_urls ?? [],
             imageUrl: args.image_url,

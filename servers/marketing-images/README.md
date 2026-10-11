@@ -53,6 +53,8 @@ to get the largest size that fits its box, and `data-decor` to skip the checks f
 (radius, button shape, eyebrow case, logo position and size, scrim, default templates, photo style) and voice notes. Assets are downloaded once through `fetchsafe`
 and kept on the volume, never hot-linked: fonts in `DATA_DIR/fonts/<owner>/<slug>/` and logos in `DATA_DIR/brands/<owner>/<slug>/` (file names are content hashes; only the
 host of the source link is remembered). It returns a brand sheet picture (palette, font specimens, logos). Uploaded fonts are registered per render, scoped to that brand.
+`generate_image` and `edit_image` accept the same `brand` (slug or inline object): the brand's `style.photo_style` and a short palette phrase (primary, accent and secondary
+as color names plus hex, for example `Brand palette: dark blue (#1F3A5F), amber (#F2A541)`) are appended to the prompt. An explicit `style` stays and wins where it differs, and `text_on_image` behaves as before.
 Templates and brands are stored in the same `app.db` (tables `templates`, `brands`, `preview_cache`); the owner is the access-token name and other owners' private ones are never visible.
 
 ## Run locally

@@ -32,6 +32,15 @@ describe('MCP tools over HTTP', () => {
     const res = await rpc(server.url, TEST_TOKEN, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'vitest', version: '0' } });
     expect(res.json.result.capabilities.tools).toBeDefined();
     expect(res.json.result.instructions).toMatch(/compose_post/);
+    // the instructions describe the whole toolset and the intended flow
+    const instructions = res.json.result.instructions as string;
+    for (const name of ['save_brand', 'list_brands', 'generate_image', 'edit_image', 'estimate_cost', 'list_providers', 'get_job', 'compose_post', 'compose_carousel', 'compose_custom', 'save_template', 'Postiz uploadFromUrlTool']) {
+      expect(instructions, name).toContain(name);
+    }
+    expect(instructions).toMatch(/Brand.*Background.*Compose.*Hand-off/s);
+    expect(instructions).toMatch(/leave_space/);
+    expect(instructions).toMatch(/OK before spending/);
+    expect(instructions).toMatch(/never publishes or schedules anything/);
   });
 
   it('tools/list: every tool has a title, annotations and an LLM-oriented description', async () => {

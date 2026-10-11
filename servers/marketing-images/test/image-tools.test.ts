@@ -90,6 +90,11 @@ describe('tool registration (DESIGN section 5)', () => {
       expect.arrayContaining(['prompt', 'provider', 'model', 'aspect_ratio', 'size', 'num_images', 'negative_prompt', 'style', 'text_on_image', 'reference_image_urls', 'seed', 'leave_space']),
     );
     expect(byName.edit_image!.inputSchema.required).toEqual(['image_url', 'instruction']);
+    for (const name of ['generate_image', 'edit_image']) {
+      expect(byName[name]!.inputSchema.properties.brand, name).toBeDefined();
+      expect(byName[name]!.inputSchema.required).not.toContain('brand');
+      expect(byName[name]!.description).toMatch(/`brand`/);
+    }
     expect(byName.get_job!.inputSchema.required).toEqual(['job_id']);
   });
 });
@@ -257,6 +262,139 @@ describe('edit_image', () => {
     expect(textOf(result)).toMatch(/cannot be used/);
     expect(s.ctx.ledger.quota('alice').images).toMatchObject({ used: 0, reserved: 0 });
     expect(s.mock.calls).toHaveLength(0);
+  });
+});
+
+describe('brand on generate_image and edit_image (DESIGN section 5.3)', () => {
+  const nova = (extra: Record<string, unknown> = {}) => ({
+    slug: 'nova-clinic',
+    display_name: 'Nova Clinic',
+    colors: { primary: '#0f766e', secondary: '#ecfdf5', accent: '#f59e0b', ink: '#0b1020', paper: '#ffffff' },
+    fonts: { heading: 'Outfit', body: 'Work Sans' },
+    style: { photo_style: 'warm natural light, minimal, beige tones.' },
+    ...extra,
+  });
+  const promptOf = (s: ImageServer, index = 0): string => s.mock.callsTo(':generateContent')[index]!.body.contents[0].parts[0].text as string;
+  const save = async (s: ImageServer, token: string, brand: Record<string, unknown>) => {
+    const r = await callTool(s.url, token, 'save_brand', brand);
+    expect(r.isError, textOf(r)).toBeUndefined();
+  };
+
+  it('generate_image with a saved brand adds its photo style and a palette phrase, keeps the no-text default and logs only the slug', async () => {
+    const s = await startImageServer();
+    await geminiPhoto(s.mock);
+    await save(s, TEST_TOKEN, nova());
+    const result = await callTool(s.url, TEST_TOKEN, 'generate_image', { prompt: 'a calm clinic reception, plants', brand: 'nova-clinic', leave_space: 'top' });
+    expect(result.isError, textOf(result)).toBeUndefined();
+    const prompt = promptOf(s);
+    expect(prompt).toContain('a calm clinic reception, plants');
+    expect(prompt).toContain('Brand photo style: warm natural light, minimal, beige tones.'); // trailing period normalised, not doubled
+    expect(prompt).toMatch(/Brand palette: dark teal \(#0F766E\), amber \(#F59E0B\), off-white \(#ECFDF5\)\./);
+    expect(prompt).not.toContain('#0B1020'); // ink/paper are text colors
+    expect(prompt).toContain('Keep the top area calm, no text.');
+    expect(prompt).toContain('No text, letters, logos or watermarks.');
+    const entry = s.rawLogs.map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => l.msg === 'tool_call' && l.tool === 'generate_image')!;
+    expect(entry.brand).toBe('nova-clinic');
+    expect(s.rawLogs.join('\n')).not.toContain('beige tones');
+  });
+
+  it('an explicit style is kept and takes precedence over the brand photo style', async () => {
+    const s = await startImageServer();
+    await geminiPhoto(s.mock);
+    await save(s, TEST_TOKEN, nova());
+    await callTool(s.url, TEST_TOKEN, 'generate_image', { prompt: 'a calm lake', brand: 'nova-clinic', style: 'dark and moody, high contrast' });
+    const prompt = promptOf(s);
+    expect(prompt).toContain('Visual style: dark and moody, high contrast.');
+    expect(prompt).toContain('Brand photo style (the visual style above wins if they differ): warm natural light, minimal, beige tones.');
+    expect(prompt).toContain('Brand palette:');
+  });
+
+  it('text_on_image keeps working with a brand', async () => {
+    const s = await startImageServer();
+    await geminiPhoto(s.mock);
+    await save(s, TEST_TOKEN, nova());
+    await callTool(s.url, TEST_TOKEN, 'generate_image', { prompt: 'a shop window sign', brand: 'nova-clinic', text_on_image: 'Abierto hoy' });
+    const prompt = promptOf(s);
+    expect(prompt).toContain(`Render this exact text, spelled exactly as written and clearly legible: "Abierto hoy". No other text.`);
+    expect(prompt).not.toContain('No text, letters, logos or watermarks.');
+    expect(prompt).toContain('Brand photo style:');
+  });
+
+  it('a private brand of another owner cannot be resolved, by slug or by owner/slug, and nothing is spent', async () => {
+    const s = await startImageServer();
+    await geminiPhoto(s.mock);
+    await save(s, TEST_TOKEN, nova());
+    for (const brand of ['nova-clinic', 'alice/nova-clinic']) {
+      for (const tool of ['generate_image', 'edit_image'] as const) {
+        const args = tool === 'generate_image' ? { prompt: 'a calm lake', brand } : { image_url: 'https://photos.example.test/me.jpg', instruction: 'make it warmer', brand };
+        const r = await callTool(s.url, OTHER_TOKEN, tool, args);
+        expect(r.isError, `${tool} ${brand}`).toBe(true);
+        expect(textOf(r)).toMatch(/There is no saved brand called "/);
+        expect(textOf(r)).not.toContain('beige tones');
+      }
+    }
+    expect(s.mock.calls).toHaveLength(0);
+    expect(s.ctx.ledger.quota('bob').images).toMatchObject({ used: 0, reserved: 0 });
+  });
+
+  it('a shared brand works for others as owner/slug, and an own brand with the same slug wins', async () => {
+    const s = await startImageServer();
+    await geminiPhoto(s.mock);
+    await save(s, TEST_TOKEN, nova({ shared: true }));
+    const viaOwner = await callTool(s.url, OTHER_TOKEN, 'generate_image', { prompt: 'a calm lake', brand: 'alice/nova-clinic' });
+    expect(viaOwner.isError, textOf(viaOwner)).toBeUndefined();
+    expect(promptOf(s, 0)).toContain('Brand photo style: warm natural light, minimal, beige tones.');
+
+    await save(s, OTHER_TOKEN, nova({ display_name: 'Bob Version', style: { photo_style: 'neon night street photography' } }));
+    await callTool(s.url, OTHER_TOKEN, 'generate_image', { prompt: 'a calm lake', brand: 'nova-clinic' });
+    expect(promptOf(s, 1)).toContain('Brand photo style: neon night street photography.');
+    expect(promptOf(s, 1)).not.toContain('beige tones');
+  });
+
+  it('an inline brand works the same way (and only says what it knows)', async () => {
+    const s = await startImageServer();
+    await geminiPhoto(s.mock);
+    const full = await callTool(s.url, TEST_TOKEN, 'generate_image', {
+      prompt: 'a bakery counter',
+      brand: { colors: { primary: '#14213d', accent: '#fca311' }, style: { photo_style: 'bright studio light, shallow depth of field' } },
+    });
+    expect(full.isError, textOf(full)).toBeUndefined();
+    expect(promptOf(s, 0)).toContain('Brand photo style: bright studio light, shallow depth of field.');
+    expect(promptOf(s, 0)).toContain('Brand palette: dark blue (#14213D), amber (#FCA311).');
+
+    await callTool(s.url, TEST_TOKEN, 'generate_image', { prompt: 'a bakery counter', brand: { colors: { accent: '#fca311' } } });
+    expect(promptOf(s, 1)).toContain('Brand palette: amber (#FCA311).');
+    expect(promptOf(s, 1)).not.toContain('Brand photo style');
+
+    await callTool(s.url, TEST_TOKEN, 'generate_image', { prompt: 'a bakery counter', brand: { fonts: { heading: 'Lora' } } });
+    expect(promptOf(s, 2)).not.toContain('Brand');
+  });
+
+  it('edit_image applies the brand after the "keep everything else" instruction', async () => {
+    const s = await startImageServer();
+    await geminiPhoto(s.mock);
+    await save(s, TEST_TOKEN, nova());
+    const r = await callTool(s.url, TEST_TOKEN, 'edit_image', { image_url: 'https://photos.example.test/me.jpg', instruction: 'make the background a sunny beach', brand: 'nova-clinic' });
+    expect(r.isError, textOf(r)).toBeUndefined();
+    const prompt = promptOf(s);
+    expect(prompt).toContain('Edit the attached image: make the background a sunny beach');
+    expect(prompt).toContain('Brand photo style: warm natural light, minimal, beige tones.');
+    expect(prompt).toContain('Brand palette:');
+    expect(prompt.indexOf('Keep everything the instruction does not mention unchanged')).toBeLessThan(prompt.indexOf('Brand photo style'));
+    expect(prompt).not.toContain('No text, letters');
+  });
+
+  it('the brand photo style goes through the same prompt guard as the prompt; an unknown slug fails before any spending', async () => {
+    const s = await startImageServer();
+    await geminiPhoto(s.mock);
+    const refused = await callTool(s.url, TEST_TOKEN, 'generate_image', { prompt: 'a calm lake', brand: { style: { photo_style: 'in the style of Disney' } } });
+    expect(refused.isError).toBe(true);
+    expect(textOf(refused)).toMatch(/logos, brands or characters/);
+    const unknown = await callTool(s.url, TEST_TOKEN, 'generate_image', { prompt: 'a calm lake', brand: 'does-not-exist' });
+    expect(unknown.isError).toBe(true);
+    expect(textOf(unknown)).toMatch(/no saved brand called "does-not-exist"/);
+    expect(s.mock.calls).toHaveLength(0);
+    expect(s.ctx.ledger.quota('alice').images).toMatchObject({ used: 0, reserved: 0 });
   });
 });
 

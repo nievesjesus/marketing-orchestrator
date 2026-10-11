@@ -1,12 +1,13 @@
 // registerTool, annotations and image content blocks: https://ts.sdk.modelcontextprotocol.io/v2/servers/tools.md
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
+import { resolveBrandImageHints } from '../brand-prompt.js';
 import type { AppContext } from '../context.js';
 import { RATIOS } from '../models.js';
 import { adaptersFor } from '../providers/index.js';
 import { defaultDeps, runImageRequest } from '../providers/orchestrator.js';
 import { assertPromptAllowed } from '../safety.js';
-import { logCandidate, modelField, numImagesField, outcomeResult, providerField, sizeField } from './imageResult.js';
+import { brandField, logCandidate, modelField, numImagesField, outcomeResult, providerField, sizeField } from './imageResult.js';
 import { runTool } from './run.js';
 
 const inputSchema = z.object({
@@ -20,7 +21,8 @@ const inputSchema = z.object({
   size: sizeField,
   num_images: numImagesField,
   negative_prompt: z.string().max(300).optional().describe('Things to keep out of the picture (for example "blurry, extra fingers").'),
-  style: z.string().max(200).optional().describe('The brand’s visual style in a few words (for example "warm natural light, muted earth tones, minimalist"). Use the user’s brand kit.'),
+  style: z.string().max(200).optional().describe('The visual style in a few words (for example "warm natural light, muted earth tones, minimalist"). With `brand` set, the brand’s photo style is added already; use this to override or refine it for this picture.'),
+  brand: brandField,
   text_on_image: z
     .string()
     .max(150)
@@ -40,6 +42,7 @@ export function registerGenerateImage(server: McpServer, ctx: AppContext, user: 
         'Creates 1-4 AI pictures from a description (a text-free background, a product scene, an illustration) with Gemini, fal.ai or Leonardo. ' +
         'This COSTS MONEY (roughly US$0.003-0.13 per image) and counts against the user’s daily allowance. ' +
         'Before calling: show the user a 2-3 line brief (what the picture is, shape, how many) plus the price from estimate_cost, and call only after they say OK. ' +
+        'Pass `brand` (a saved brand’s slug, see list_brands, or an inline object) so the picture follows the company’s photo style and colors. ' +
         'Keep words out of the picture: leave text_on_image empty and add the headline afterwards with compose_post, which draws perfectly spelled text; use leave_space to keep an area clear for it. ' +
         'Real people, other companies’ brands/logos and cartoon characters are refused. ' +
         'The answer says which provider was used (`provider`) and why another was tried first (`fallback_from`). ' +
@@ -51,7 +54,9 @@ export function registerGenerateImage(server: McpServer, ctx: AppContext, user: 
     async (args) =>
       runTool(ctx, user, 'generate_image', async (meta) => {
         meta.n = args.num_images;
-        assertPromptAllowed('generate', [args.prompt, args.style, args.text_on_image]);
+        const brand = resolveBrandImageHints(ctx, user, args.brand);
+        if (args.brand !== undefined) meta.brand = typeof args.brand === 'string' ? args.brand : 'inline';
+        assertPromptAllowed('generate', [args.prompt, args.style, args.text_on_image, brand?.photoStyle]);
 
         const outcome = await runImageRequest(
           ctx,
@@ -66,6 +71,8 @@ export function registerGenerateImage(server: McpServer, ctx: AppContext, user: 
             numImages: args.num_images,
             negativePrompt: args.negative_prompt,
             style: args.style,
+            brandPhotoStyle: brand?.photoStyle,
+            brandPalette: brand?.palette,
             textOnImage: args.text_on_image,
             references: args.reference_image_urls ?? [],
             seed: args.seed,

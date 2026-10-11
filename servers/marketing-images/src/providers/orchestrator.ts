@@ -37,6 +37,9 @@ export interface ImageRequest {
   numImages: number;
   negativePrompt?: string | undefined;
   style?: string | undefined;
+  /** From a saved or inline brand: its photo style and palette phrase, added to the prompt after `style` (never used for routing). */
+  brandPhotoStyle?: string | undefined;
+  brandPalette?: string | undefined;
   textOnImage?: string | undefined;
   /** Reference images (generate) or extra references next to the photo (edit). */
   references: string[];
@@ -196,6 +199,8 @@ export async function runImageRequest(
           task: req.task,
           text: req.text,
           style: req.style,
+          brandPhotoStyle: req.brandPhotoStyle,
+          brandPalette: req.brandPalette,
           textOnImage: req.textOnImage,
           leaveSpace: req.leaveSpace,
           negativePrompt: req.negativePrompt,
