@@ -26,6 +26,9 @@ async function main(): Promise<void> {
     // Reservations older than an hour belong to crashed requests: give the budget back.
     const refunded = ctx.ledger.expireReservations(HOUR_MS);
     if (refunded > 0) logger.info('reservations_expired', { count: refunded });
+    // Jobs nobody collected within 24 h expire and their reservation is refunded (DESIGN section 8).
+    const jobs = ctx.ledger.expireJobs(24 * HOUR_MS);
+    if (jobs.expired > 0 || jobs.deleted > 0) logger.info('jobs_expired', jobs);
   };
   sweep();
   const timer = setInterval(sweep, HOUR_MS);

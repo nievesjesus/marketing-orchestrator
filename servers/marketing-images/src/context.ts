@@ -25,9 +25,13 @@ export interface AppContext {
   fetchImage(url: string, opts?: { svg?: boolean }): Promise<Buffer>;
   /** Download a TTF/OTF font through the SSRF guard (WOFF/WOFF2 are rejected with a clear message). */
   fetchFont(url: string): Promise<Buffer>;
+  /** Outbound HTTP for the image providers (tests replace it; defaults to the global fetch). */
+  providerFetch: typeof fetch;
 }
 
-export type ContextOverrides = Partial<Pick<AppContext, 'storage' | 'ledger' | 'fetchImage' | 'fetchFont' | 'fonts' | 'templates' | 'brands'>>;
+export type ContextOverrides = Partial<
+  Pick<AppContext, 'storage' | 'ledger' | 'fetchImage' | 'fetchFont' | 'fonts' | 'templates' | 'brands' | 'providerFetch'>
+>;
 
 export function createContext(config: Config, logger: Logger, overrides: ContextOverrides = {}): AppContext {
   return {
@@ -53,5 +57,6 @@ export function createContext(config: Config, logger: Logger, overrides: Context
     fetchFont:
       overrides.fetchFont ??
       (async (url) => (await fetchSafe(url, { kind: 'font', maxBytes: 8 * 1024 * 1024, allowInsecureLocalhost: config.allowInsecureLocalhost })).data),
+    providerFetch: overrides.providerFetch ?? ((input, init) => fetch(input, init)),
   };
 }

@@ -34,7 +34,7 @@ describe('MCP tools over HTTP', () => {
     expect(res.json.result.instructions).toMatch(/compose_post/);
   });
 
-  it('tools/list: every tool has a title, annotations and a description for an LLM', async () => {
+  it('tools/list: every tool has a title, annotations and an LLM-oriented description', async () => {
     const res = await rpc(server.url, TEST_TOKEN, 'tools/list');
     const tools = res.json.result.tools as { name: string; title?: string; description: string; annotations: Record<string, boolean>; inputSchema: any }[];
     expect(tools.map((t) => t.name).sort()).toEqual([
@@ -43,7 +43,11 @@ describe('MCP tools over HTTP', () => {
       'compose_post',
       'delete_brand',
       'delete_template',
+      'edit_image',
+      'estimate_cost',
+      'generate_image',
       'get_brand',
+      'get_job',
       'get_template',
       'list_brands',
       'list_providers',
@@ -70,6 +74,8 @@ describe('MCP tools over HTTP', () => {
     expect(byName.delete_brand!.description).toMatch(/confirm/i);
     for (const name of ['get_template', 'get_brand', 'list_brands']) expect(byName[name]!.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
     expect(byName.compose_custom!.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
+    expect(byName.estimate_cost!.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+    for (const name of ['generate_image', 'edit_image', 'get_job']) expect(byName[name]!.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
     expect(byName.compose_custom!.description).toMatch(/\{\{brand\.color/);
     expect(byName.compose_custom!.description).toMatch(/data-fit/);
     expect(byName.compose_post!.inputSchema.required).toEqual(['format']);
@@ -95,7 +101,7 @@ describe('MCP tools over HTTP', () => {
     expect(byId.leonardo.models[0].cost_is_estimate).toBe(true);
     expect(byId.fal.models[0].price.approx_usd_per_image).toBeGreaterThan(0);
     expect(data.today).toMatchObject({ images_left: 30, image_limit: 30, budget_left_usd: 3, budget_limit_usd: 3, composed_graphics_limit: 6 });
-    expect(data.status).toMatch(/not enabled/);
+    expect(data.status).toBeUndefined(); // the "image generation not enabled yet" note is gone
   });
 
   it('list_templates describes the built-in templates, all formats and the headline hints; supports a format filter', async () => {
