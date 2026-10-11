@@ -13,3 +13,7 @@ node_modules/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 graft/
+
+# Planning and design notes stay local (not published).
+docs/
+servers/marketing-images/DESIGN.md

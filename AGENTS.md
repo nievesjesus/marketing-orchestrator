@@ -27,7 +27,6 @@ tools/                              ← optional Python dev toolkit; never shipp
   install.sh                        ← dev helper: link/copy the skill into Claude Code / Codex, print local MCP config; `zip` runs build.sh
 build.sh                            ← validates the skill, builds dist/marketing-orchestrator.zip (skill only)
                                       and dist/marketing-orchestrator-plugin.zip (plugin bundle)
-docs/PLAN.md                        ← v0.5 product plan
 .github/workflows/ci.yml            ← python tests · skill validation + build
 ```
 
@@ -59,7 +58,7 @@ docs/PLAN.md                        ← v0.5 product plan
 4. Tests in `tools/tests/` (mock HTTP; no network).
 5. `CHANGELOG.md`; bump `__version__` in `tools/scripts/mktlib/__init__.py`.
 
-**Hosted image server:** work in `servers/marketing-images/` (see its `DESIGN.md`); it has its own checks (CI job placeholder in `.github/workflows/ci.yml`).
+**Hosted image server:** work in `servers/marketing-images/` (planning and design notes are kept locally, not in the repo); it has its own checks (CI job placeholder in `.github/workflows/ci.yml`).
 
 ## Checks before committing
 

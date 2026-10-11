@@ -8,7 +8,7 @@ Works in **Claude (web, Desktop, mobile, Cowork), Claude Code, Codex, Cursor** a
 
 - **Post packages** per network: goal, audience, hook (+ A/B), copy, CTA, hashtags, alt text, first comment.
 - **Brand card**: a short interview produces a brand card the user keeps in a Claude Project (works on every device).
-- **Images**: briefs and routing to the connected image tools (Canva today; the hosted Marketing Images connector is in development, see [`docs/PLAN.md`](docs/PLAN.md)).
+- **Images**: briefs and routing to the connected image tools (Canva today; the hosted Marketing Images connector is in development).
 - **When to post**: audience-timezone heuristics plus the Postiz calendar.
 - **Scheduling in Postiz**: drafts are always fine; publishing or scheduling needs an explicit yes.
 
@@ -38,7 +38,6 @@ skills/marketing-orchestrator/      the skill: SKILL.md + references/ only (this
 servers/marketing-images/           hosted image MCP server (design; Cloudflare Worker)
 tools/                              optional Python toolkit for developers (CLI, local MCP server, tests)
 build.sh                            validates the skill and builds both zips into dist/
-docs/PLAN.md                        product plan for v0.5
 ```
 
 ## Developer toolkit (optional)
