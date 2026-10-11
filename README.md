@@ -6,11 +6,13 @@ Works in **Claude (web, Desktop, mobile, Cowork), Claude Code, Codex, Cursor** a
 
 ## What it does
 
-- **Post packages** per network: goal, audience, hook (+ A/B), copy, CTA, hashtags, alt text, first comment.
-- **Brand card**: a short interview produces a brand card the user keeps in a Claude Project (works on every device).
-- **Images**: briefs and routing to the connected image tools (Canva today; the hosted Marketing Images connector is in development).
+- **Campaigns and single posts:** pick a goal, an audience and a message, and the assistant builds a short campaign (launch, event, weekly series, seasonal promo, re-engagement) with a calendar, or one post, with a short card to approve first. Approving a plan never schedules anything.
+- **Post packages** per network: goal, audience, hook (+ A/B), copy, call to action, hashtags, alt text, first comment.
+- **Brand card** and **saved visual brand**: a short interview produces a brand card the user keeps in a Claude Project (works on every device); the colors, fonts and logo are saved in the Marketing Images connector so every graphic matches.
+- **Branded graphics** with the [Marketing Images connector](servers/marketing-images/README.md): AI backgrounds, finished posts with exact text, brand colors and logo, carousels and custom layouts, in every common size. Canva is an optional second route, and the user's own photos come in through Postiz's upload widget.
+- **Silent brand check** before anything is shown (voice, banned words, claims to double-check) and a plain check-in report after a campaign.
 - **When to post**: audience-timezone heuristics plus the Postiz calendar.
-- **Scheduling in Postiz**: drafts are always fine; publishing or scheduling needs an explicit yes.
+- **Scheduling in Postiz** (v2.25 or newer): images are copied into Postiz, drafts are always fine, and publishing or scheduling needs an explicit yes.
 
 ## Install
 
@@ -22,21 +24,23 @@ bash build.sh
 
 | File | Contains | Upload in Claude |
 |---|---|---|
-| `dist/marketing-orchestrator-plugin.zip` (recommended) | The skill plus the connector entry (`.mcp.json`) | Customize → Plugins → Add → Upload plugin |
-| `dist/marketing-orchestrator.zip` | The skill only | Customize → Skills → Upload |
+| `dist/marketing-orchestrator-plugin.zip` (recommended) | The skill, with `THIRD_PARTY_NOTICES.md` and `LICENSES/` | Customize → Plugins → Add → Upload plugin |
+| `dist/marketing-orchestrator.zip` | The skill only, with its notices inside the folder | Customize → Skills → Upload |
+
+The plugin is the skill only. Both connectors need a personal link or key (a secret), so they are **not** bundled: each user adds **Postiz** and **Marketing Images** themselves in Customize → Connectors → Add custom connector. The guided steps are in `skills/marketing-orchestrator/references/getting-started.md`, and the assistant walks the user through them. Claude Pro or higher is needed (the Free plan allows only one custom connector) and "Code execution and file creation" must be on.
 
 For Claude Code or Codex, link the skill folder instead: `tools/install.sh claude-code codex`.
 
-Data: the plugin stores nothing itself. Post text and images go only to the connectors the user chooses to connect (Postiz, the Marketing Images connector, Canva). No API keys are bundled; Postiz is connected by the user inside Claude.
+Data: the plugin stores nothing itself. Post text and images go only to the connectors the user chooses to connect (Postiz, Marketing Images, Canva). No keys or links are bundled.
 
 ## Repository layout
 
 ```
 .claude-plugin/plugin.json          plugin manifest
-.mcp.json                           connector entries bundled in the plugin (no secrets)
 skills/marketing-orchestrator/      the skill: SKILL.md + references/ only (this is what ships)
 servers/marketing-images/           portable MCP server (Node/TS, Docker): image generation + post composer
 tools/                              optional Python toolkit for developers (CLI, local MCP server, tests)
+THIRD_PARTY_NOTICES.md, LICENSES/   attribution and license text for the Apache-2.0 portions (shipped in both zips)
 build.sh                            validates the skill and builds both zips into dist/
 ```
 
@@ -69,11 +73,10 @@ bash build.sh
 
 - Weekly content calendar from pillars + cadence, filled into Postiz as drafts
 - Analytics loop: pull post stats, update `learned` and best-time windows per brand
-- Carousel builder (multi-slide images with consistent style and text)
 - Video: Postiz clipping / Veo short clips
 - More image providers behind the same `image generate` interface
 - Competitor/trend research step before drafting
 
 ## License
 
-MIT
+MIT (see `LICENSE`). Portions of the skill's instructions are adapted from Anthropic's knowledge-work-plugins Marketing plugin and are under the Apache License 2.0, modified: see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) and [`LICENSES/Apache-2.0.txt`](LICENSES/Apache-2.0.txt).

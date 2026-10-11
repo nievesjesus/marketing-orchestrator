@@ -24,3 +24,6 @@ servers/marketing-images/.data/
 
 # Agent worktrees
 .claude/worktrees/
+
+# Connector links are secrets: a project-level .mcp.json must never be committed (the plugin ships none).
+.mcp.json

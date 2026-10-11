@@ -1,10 +1,10 @@
 # Platform Playbook
 
-Starting heuristics, not laws. Times are in the **audience's** local timezone. When Postiz analytics exist for this account, real performance beats this table — say which one you used.
+Starting heuristics, not laws. Times are in the **audience's** local timezone. When the user shares real results (from Postiz → Analytics or their own answers, see `reports.md`), real performance beats this table: say which one you used.
 
 ## Quick reference
 
-| Platform | Ideal length | Hashtags | Links in body | Best windows (local) | Min spacing |
+| Platform | Ideal length | Hashtags | Links in body | Best windows (local) | Min spacing (single posts) |
 |---|---|---|---|---|---|
 | LinkedIn (profile/page) | 900–1,300 chars; hook ≤ 2 lines before "see more" | 3–5, at the end | Avoid — put in first comment | Tue–Thu 08:00–10:00, 12:00–13:00 | 24h |
 | Instagram feed | 125–300 chars visible; up to 2,200 | 5–10 relevant (end or first comment) | Not clickable — "link in bio" | Mon–Fri 11:00–13:00, 19:00–21:00 | 24h |
@@ -18,9 +18,11 @@ Starting heuristics, not laws. Times are in the **audience's** local timezone. W
 
 LATAM B2B audiences skew a bit later than US benchmarks: shift lunch windows to 13:00–14:30 and avoid Friday afternoons and Monday before 10:00.
 
+The spacing column is the shortest sensible gap for a one-off post. In campaign mode, and by default in SKILL.md, keep **at least 24 hours** between posts on the same network; go tighter on Stories, X or Threads only when the user asks for it.
+
 ## Copy structure by platform
 
-**LinkedIn** — Hook (bold claim, number, or tension) → blank line → short paragraphs of 1–2 lines → concrete story or lesson with specifics → one takeaway → question or soft CTA → hashtags. First person. No emoji bullets wall. Carousels: one idea per slide, title the carousel.
+**LinkedIn** — Hook (a bold claim, a real number the user gave you, or a tension) → blank line → short paragraphs of 1–2 lines → concrete story or lesson with specifics → one takeaway → question or soft CTA → hashtags. First person. No emoji bullets wall. Carousels: one idea per slide, title the carousel.
 
 **Instagram** — First line carries the post (it's all most people see). Conversational, emoji OK if the brand allows. Line breaks for rhythm. CTA: save / share / comment keyword / link in bio. Hashtags at the end or in first comment.
 
@@ -42,16 +44,16 @@ LATAM B2B audiences skew a bit later than US benchmarks: shift lunch windows to 
 
 ## Image fit
 
-| Platform | Preferred ratio |
-|---|---|
-| LinkedIn | 1:1, 4:5, 1.91:1 |
-| Instagram feed | 4:5 (best), 1:1 |
-| Instagram story / Reels / TikTok | 9:16 |
-| X | 16:9, 1:1 |
-| Facebook | 1:1, 4:5 |
-| Pinterest | 2:3 |
+| Platform | Preferred ratio | Marketing Images format |
+|---|---|---|
+| LinkedIn | 1:1, 4:5, 1.91:1 | `square`, `portrait`, `link` (1200×627) |
+| Instagram feed | 4:5 (best), 1:1 | `portrait`, `square` |
+| Instagram story / Reels / TikTok | 9:16 | `story` |
+| X | 16:9, 1:1 | `landscape`, `square` |
+| Facebook | 1:1, 4:5 | `square`, `portrait` |
+| Pinterest | 2:3 | none fits exactly: use `portrait` or `story`, or the user's own photo |
 
-If an image doesn't fit, say so and suggest a crop rather than posting a badly cropped version.
+For the AI background (`generate_image`) the matching `aspect_ratio` values are `1:1`, `4:5`, `9:16` and `16:9` (`2:3` and `3:2` also exist). If an image doesn't fit, say so and suggest a crop or another format rather than posting a badly cropped version.
 
 ## Objective → CTA cheat sheet
 
@@ -62,3 +64,5 @@ If an image doesn't fit, say so and suggest a crop rather than posting a badly c
 | Traffic | "Full write-up in the first comment", "Link in bio" |
 | Leads | "DM me 'X' and I'll send…", "Book a call — link below" |
 | Authority | Ask for experiences: "How does your team handle…?" |
+
+Urgency and offers in a call to action ("last day", "only 10 spots", "free") must be real and confirmed by the user.

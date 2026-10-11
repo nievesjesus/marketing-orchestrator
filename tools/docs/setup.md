@@ -61,7 +61,7 @@ Step-by-step for Claude, Claude Code, Codex and Cursor: `skills/marketing-orches
 
 ## 5. Optional: other image MCPs
 
-Figma (`generate_image`, Nano Banana 2 / GPT image) and Canva (full branded designs) can stand in for or complement Gemini. See the Providers table in `skills/marketing-orchestrator/references/image-generation.md`.
+Figma (`generate_image`, Nano Banana 2 / GPT image) and Canva (full branded designs) can stand in for or complement Gemini. See the options table in `skills/marketing-orchestrator/references/visuals.md`.
 
 ## Troubleshooting
 
