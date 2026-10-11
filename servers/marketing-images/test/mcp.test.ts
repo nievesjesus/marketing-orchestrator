@@ -34,10 +34,10 @@ describe('MCP tools over HTTP', () => {
     expect(res.json.result.instructions).toMatch(/compose_post/);
   });
 
-  it('tools/list: three tools with titles, annotations and descriptions for an LLM', async () => {
+  it('tools/list: every tool has a title, annotations and an LLM-oriented description', async () => {
     const res = await rpc(server.url, TEST_TOKEN, 'tools/list');
     const tools = res.json.result.tools as { name: string; title?: string; description: string; annotations: Record<string, boolean>; inputSchema: any }[];
-    expect(tools.map((t) => t.name).sort()).toEqual(['compose_post', 'list_providers', 'list_templates']);
+    expect(tools.map((t) => t.name).sort()).toEqual(['compose_post', 'edit_image', 'estimate_cost', 'generate_image', 'get_job', 'list_providers', 'list_templates']);
     for (const t of tools) {
       expect(t.name.length).toBeLessThanOrEqual(64);
       expect(t.title?.length).toBeGreaterThan(3);
@@ -74,7 +74,7 @@ describe('MCP tools over HTTP', () => {
     expect(byId.leonardo.models[0].cost_is_estimate).toBe(true);
     expect(byId.fal.models[0].price.approx_usd_per_image).toBeGreaterThan(0);
     expect(data.today).toMatchObject({ images_left: 30, image_limit: 30, budget_left_usd: 3, budget_limit_usd: 3, composed_graphics_limit: 6 });
-    expect(data.status).toMatch(/not enabled/);
+    expect(data.status).toBeUndefined(); // the "image generation not enabled yet" note is gone
   });
 
   it('list_templates describes both templates, all formats and the headline hints; supports a format filter', async () => {

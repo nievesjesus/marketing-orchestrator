@@ -1,6 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import type { AppContext } from './context.js';
 import { registerComposePost } from './tools/composePost.js';
+import { registerEditImage } from './tools/editImage.js';
+import { registerEstimateCost } from './tools/estimateCost.js';
+import { registerGenerateImage } from './tools/generateImage.js';
+import { registerGetJob } from './tools/getJob.js';
 import { registerListProviders } from './tools/listProviders.js';
 import { registerListTemplates } from './tools/listTemplates.js';
 import { SERVER_NAME, VERSION } from './version.js';
@@ -22,5 +26,9 @@ export function createMcpServer(ctx: AppContext, user: string): McpServer {
   registerListProviders(server, ctx, user);
   registerListTemplates(server, ctx, user);
   registerComposePost(server, ctx, user);
+  registerEstimateCost(server, ctx, user);
+  registerGenerateImage(server, ctx, user);
+  registerEditImage(server, ctx, user);
+  registerGetJob(server, ctx, user);
   return server;
 }

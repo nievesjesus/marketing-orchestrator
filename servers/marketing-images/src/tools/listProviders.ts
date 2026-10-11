@@ -51,8 +51,7 @@ export function registerListProviders(server: McpServer, ctx: AppContext, user: 
         'whether it is set up on this server (`available`), and how much of today’s allowance is left (images, budget in USD, composed graphics). ' +
         'Read-only and free; call it before planning images so you can tell the user what is possible and what it costs. ' +
         'Use the plain "can" list to explain strengths in everyday words (for example "good at text inside the picture"). ' +
-        'Note: AI image generation tools are being added to this server step by step; until generate_image appears in the tool list, ' +
-        'use compose_post with a photo link the user provided, or a color/gradient background.',
+        'Make pictures with generate_image or edit_image (estimate_cost gives the price first); only providers with `available: true` can be used.',
       inputSchema: z.object({}),
       annotations: { title: 'List image providers and today’s allowance', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
@@ -77,8 +76,6 @@ export function registerListProviders(server: McpServer, ctx: AppContext, user: 
             composed_graphics_left: quota.renders.left,
             composed_graphics_limit: quota.renders.limit,
           },
-          status:
-            'generate_image and edit_image are not enabled in this server version yet; compose_post and list_templates are. `available` only tells whether the provider key is configured.',
         });
       }),
   );

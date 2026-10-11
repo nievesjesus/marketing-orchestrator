@@ -6,8 +6,10 @@ headline, short paragraph, button, brand colors and logo, in every common post s
 (Satori + resvg + sharp), so it is always sharp and spelled exactly as written. Every result is a public image link
 that the scheduling tool (Postiz `uploadFromUrlTool`) can copy.
 
-Tools in this version: `list_providers` (image models, prices, today's allowance), `list_templates`, `compose_post`.
-AI image generation and editing (Gemini, fal, Leonardo) arrive next; the model catalog is already in `src/models.ts`.
+Tools in this version: `list_providers` (image models, prices, today's allowance), `list_templates`, `compose_post`,
+and the AI image tools `generate_image`, `edit_image`, `estimate_cost` (quote before spending) and `get_job`
+(finish an image that took longer than the synchronous wait). They use Gemini, fal.ai and Leonardo through the
+model catalog in `src/models.ts`.
 
 ## Run locally
 
@@ -40,7 +42,7 @@ Copy `.env.example`; every name is listed there.
 | `DATA_DIR` | no | `/data` | SQLite ledger (`app.db`) and `images/{yyyy}/{mm}/{uuid}.{png\|jpg}`. Mount a volume. |
 | `RETENTION_DAYS` | no | `30` | An hourly sweep deletes older images (Postiz keeps its own copy). |
 | `DAILY_IMAGE_LIMIT`, `DAILY_USD_LIMIT`, `DAILY_RENDER_LIMIT` | no | `30`, `3.00`, `200` | Per-user caps, UTC day. Renders are the free `compose_post` calls. |
-| `SYNC_WAIT_MS` | no | `60000` | Longest synchronous wait for a provider (used from the provider step on). |
+| `SYNC_WAIT_MS` | no | `60000` | Longest a `generate_image`/`edit_image` call waits for a queued provider (fal, Leonardo) before saving a job and returning a `job_id`. Gemini answers in one request and is awaited up to 120 s. |
 | `PORT`, `HOST`, `LOG_LEVEL`, `NODE_ENV` | no | `8080`, `0.0.0.0`, `info`, `production` | `NODE_ENV=development` binds loopback and allows `http://localhost` image links. |
 
 ## HTTP surface
@@ -73,4 +75,14 @@ Logs are one JSON line per event on stdout. They carry the token **name**, never
   the 1080-px reference, scaled by short side / 1080) are decided by our code. Fonts are bundled OFL TTFs in `fonts/` (licenses in `fonts/LICENSES/`).
 - **Downloads** of user-supplied URLs go through `src/fetchsafe.ts` (https only, DNS and IP range checks pinned to the
   connection, redirects re-checked, 15 MB, 15 s, magic bytes).
+- **Image providers** (`src/providers/`, `src/router.ts`): one adapter per provider (`generate`, `edit`, `poll`) with plain
+  `fetch`; the documented endpoints are cited next to each integration. `provider=auto` routes by `DESIGN` section 7
+  (text in the picture or reference images: Gemini first; plain edit: Gemini, fal, Leonardo; "fast/draft" with several
+  images: fal's cheapest model; otherwise Gemini, fal, Leonardo) and falls back to the next provider on provider failures
+  (5xx, timeout, 429, credits, auth) but never on safety refusals or validation errors; an explicit `provider` or `model`
+  never falls back. Every output is copied into our own storage. Queued jobs are polled with a 1 s x1.5 backoff capped at 5 s;
+  past `SYNC_WAIT_MS` the job is saved in SQLite with its reserved allowance (kept 24 h, then refunded) and `get_job`
+  resumes it. Quota is reserve, call, settle (real cost when the provider reports one) or release.
+- **Prompt guard** (`src/safety.ts`): keyword lists refuse real people, minors in sensitive contexts and third-party
+  brands/characters before any provider is called; editing the user's own photo is allowed.
 - Tests (`npm test`) need no network and write sample renders to `.samples/` (git-ignored).
