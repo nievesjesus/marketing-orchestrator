@@ -1,0 +1,33 @@
+{
+  "slug": "example-coffee-shop",
+  "name": "Example Coffee Shop",
+  "goal": "traffic",
+  "languages": ["es", "en"],
+  "timezone": "America/Argentina/Buenos_Aires",
+  "audience_timezone": "America/Argentina/Buenos_Aires",
+  "default_channels": ["instagram", "facebook"],
+  "cadence_per_week": {"instagram": 4, "facebook": 3},
+  "min_spacing_hours": {"default": 24, "instagram-story": 4},
+  "audiences": [
+    {"name": "Neighbors within a 15-minute walk: remote workers, students and retirees who like a calm place to spend a morning", "pain": "Chain cafes feel rushed and impersonal; they want good coffee and a place where they are recognized", "stage": "aware"},
+    {"name": "Weekend visitors and families looking for a relaxed brunch spot nearby", "pain": "Brunch places are crowded, noisy or overpriced", "stage": "considering"}
+  ],
+  "pillars": ["Behind the bar: our coffee and the people who make it", "Fresh from the oven: daily pastries and brunch", "Neighborhood life: events, local suppliers and regulars", "Offers and opening hours"],
+  "offer": {"cta_url": "https://example.com", "primary_cta": "Come by for a coffee"},
+  "hashtags": {"branded": ["#ExampleCoffeeShop"], "always": [], "never": ["follow4follow", "like4like"]},
+  "emoji": "sparse",
+  "links_in_first_comment": false,
+  "notes": "Fictional example brand that ships with the repo. Bilingual: post in Spanish by default, in English when the post targets visitors or tourists.",
+  "visual": {
+    "style": "Warm, natural-light photography with a handmade, slightly rustic feel; lots of wood, ceramic and steam",
+    "imagery": "Real cups, pastries and hands at work; morning light through the window; close-ups of textures",
+    "avoid": "Stock-photo smiles, neon colors, plastic cups, heavy filters, busy backgrounds",
+    "colors": {"primary": "#3B2A20", "secondary": "#F5EDE0", "accent": "#C8693A"},
+    "fonts": {"heading": "Friendly rounded serif, bold", "body": "Clean humanist sans-serif, regular"},
+    "logo": {},
+    "logo_position": "bottom-right",
+    "style_refs": [],
+    "default_aspect": {"instagram": "4:5", "facebook": "1:1"}
+  },
+  "learned": []
+}

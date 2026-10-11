@@ -1,62 +1,70 @@
 # Marketing Orchestrator
 
-A personal marketing assistant packaged as a portable [Agent Skill](https://agentskills.io): drop images (or ask for one), get on-brand, platform-tailored posts — copy, hashtags, target audience, alt text, best time to publish — and schedule them in [Postiz](https://postiz.com) after you approve.
+A marketing assistant for people with no technical background, packaged as a Claude plugin and a portable [Agent Skill](https://agentskills.io). Tell Claude what you want to promote and it plans the posts, writes them in your brand's voice for each social network, helps you get the images, suggests when to publish and, only after you say yes, schedules everything in [Postiz](https://postiz.com).
 
-Works in **Claude Code, Claude Desktop / claude.ai, Codex, Cursor** and any client that reads `SKILL.md` or speaks MCP.
-
-Built for **non-technical users**: the assistant guides setup in plain language (connect Canva and Postiz with a few clicks, create a brand card) and always replies in the user's language. The skill files themselves are kept in English. The Python toolkit and local MCP server are optional extras for developers.
+Works in **Claude (web, Desktop, mobile, Cowork), Claude Code, Codex, Cursor** and any client that reads `SKILL.md`. The assistant always replies in the user's language; the skill files themselves are in English.
 
 ## What it does
 
-- **Post packages** per platform: objective, audience, hook (+ A/B), copy, CTA, hashtags, alt text, first comment.
-- **Brand kits**: voice, audiences, pillars, palette, fonts, logos, style references, and lessons learned from your edits.
-- **Image generation & editing** with Gemini (Nano Banana), brand style injected automatically.
-- **Image tools**: stamp your real logo (auto light/dark), crop/pad to the right ratio, platform-fit check.
-- **When to post**: audience-timezone heuristics + Postiz free slots + calendar collisions.
-- **Postiz**: upload local media, build payloads, create drafts; publishing requires explicit approval.
+- **Post packages** per network: goal, audience, hook (+ A/B), copy, CTA, hashtags, alt text, first comment.
+- **Brand card**: a short interview produces a brand card the user keeps in a Claude Project (works on every device).
+- **Images**: briefs and routing to the connected image tools (Canva today; the hosted Marketing Images connector is in development, see [`docs/PLAN.md`](docs/PLAN.md)).
+- **When to post**: audience-timezone heuristics plus the Postiz calendar.
+- **Scheduling in Postiz**: drafts are always fine; publishing or scheduling needs an explicit yes.
 
-## Quick start
+## Install
+
+Build the zips (needs `zip` and Node.js; the skill is validated first):
 
 ```bash
-git clone <this repo> && cd marketing-orchestrator
+bash build.sh
+```
+
+| File | Contains | Upload in Claude |
+|---|---|---|
+| `dist/marketing-orchestrator-plugin.zip` (recommended) | The skill plus the connector entry (`.mcp.json`) | Customize → Plugins → Add → Upload plugin |
+| `dist/marketing-orchestrator.zip` | The skill only | Customize → Skills → Upload |
+
+For Claude Code or Codex, link the skill folder instead: `tools/install.sh claude-code codex`.
+
+Data: the plugin stores nothing itself. Post text and images go only to the connectors the user chooses to connect (Postiz, the Marketing Images connector, Canva). No API keys are bundled; Postiz is connected by the user inside Claude.
+
+## Repository layout
+
+```
+.claude-plugin/plugin.json          plugin manifest
+.mcp.json                           connector entries bundled in the plugin (no secrets)
+skills/marketing-orchestrator/      the skill: SKILL.md + references/ only (this is what ships)
+servers/marketing-images/           hosted image MCP server (design; Cloudflare Worker)
+tools/                              optional Python toolkit for developers (CLI, local MCP server, tests)
+build.sh                            validates the skill and builds both zips into dist/
+docs/PLAN.md                        product plan for v0.5
+```
+
+## Developer toolkit (optional)
+
+`tools/` holds a stdlib-only Python CLI and a local MCP server (brand kits, Gemini images, logo overlay, time slots, Postiz uploads). It is not shipped with the skill and the skill does not need it.
+
+```bash
 mkdir -p ~/.config/marketing-orchestrator && cp .env.example ~/.config/marketing-orchestrator/.env
 chmod 600 ~/.config/marketing-orchestrator/.env   # then fill POSTIZ_API_KEY and GEMINI_API_KEY
 pip install pillow                                # optional, for logo/crop tools
-
-./install.sh claude-code codex zip mcp-config     # pick the clients you use
-python3 skills/marketing-orchestrator/scripts/mkt.py doctor
+python3 tools/scripts/mkt.py doctor
 ```
 
-Then, in any client: *"Here are 2 images for LinkedIn, brand example-coffee-shop. Build the post and tell me when to publish."*
+Then, in any client with the toolkit connected: *"Here are 2 images for Instagram, brand example-coffee-shop. Build the post and tell me when to publish."*
 
-Details per client (Claude Desktop zip upload, MCP config for Desktop/Codex/Cursor, official Postiz MCP): [`references/setup.md`](skills/marketing-orchestrator/references/setup.md).
-
-## How it fits together
-
-```
-           ┌──────────── any agent client ─────────────┐
-           │  SKILL.md (workflow, rules, approval card)│
-           └───────┬───────────────────────┬───────────┘
-        shell?     │                       │  MCP?
-   scripts/mkt.py ─┤                       ├─ scripts/mcp_server.py
-                   └────── scripts/mktlib ─┘
-                 brand · gemini · imaging · timeslots · package · postiz
-                         │                         │
-                   Gemini API                 Postiz API
-```
-
-- **Instructions** (`SKILL.md` + `references/`) are plain Markdown and run anywhere.
-- **Actions** run through the CLI (when the agent has a shell with network) or the local MCP server (when it doesn't — e.g. Claude Desktop chat), both on the same library.
-
-## Brand kits
-
-`python3 skills/marketing-orchestrator/scripts/mkt.py brand init acme` creates `~/.config/marketing-orchestrator/brands/acme/` from the template. Fill `brand.json`, `voice.md`, add `logo*.png` and `style/` images, then `brand validate acme`. See [`references/branding.md`](skills/marketing-orchestrator/references/branding.md).
-
-Private kits stay outside the repo. For Claude Desktop/claude.ai, `./install.sh zip --with-brands` bundles them into the upload.
+Details (per-client setup, brand kits, package schema, Postiz API): [`tools/docs/`](tools/docs/). The example brand kit is `tools/brands/example-coffee-shop/`; private kits live in `~/.config/marketing-orchestrator/brands/`.
 
 ## Developing
 
-Read [`AGENTS.md`](AGENTS.md) (also loaded by Claude Code via `CLAUDE.md`). Tests: `python3 -m unittest discover -s tests -v` — no network, no keys needed.
+Read [`AGENTS.md`](AGENTS.md) (also loaded by Claude Code via `CLAUDE.md`). Checks, no network or keys needed:
+
+```bash
+python3 -m unittest discover -s tools/tests -v
+npx -y skills-ref validate skills/marketing-orchestrator
+bash build.sh
+```
 
 ## Roadmap ideas
 
@@ -70,7 +78,3 @@ Read [`AGENTS.md`](AGENTS.md) (also loaded by Claude Code via `CLAUDE.md`). Test
 ## License
 
 MIT
-
-## Continuing in Claude Code
-
-The full handoff prompt for the next iteration (hosted `marketing-images` MCP with fal + Leonardo + Gemini) is in [`docs/claude-code-handoff.md`](docs/claude-code-handoff.md).

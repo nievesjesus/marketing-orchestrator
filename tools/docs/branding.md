@@ -5,8 +5,8 @@ A brand kit is a folder: `brand.json` (structured), `voice.md` (prose), logos, a
 ## Where kits live (first match wins)
 
 1. `$MKT_BRANDS_DIR/<slug>/`
-2. `~/.config/marketing-orchestrator/brands/<slug>/` — your private kits; skill updates never overwrite them
-3. `<skill>/assets/brands/<slug>/` — bundled kits (the only place that travels inside a zip uploaded to Claude Desktop / claude.ai)
+2. `~/.config/marketing-orchestrator/brands/<slug>/` — your private kits; repo updates never overwrite them
+3. `tools/brands/<slug>/` in this repo — bundled example kits (`example-coffee-shop`, `_template`). Nothing here ships inside the skill or plugin zips.
 
 Commands: `mkt.py brand list | show <slug> | validate <slug> | init <slug> [--here] | learn <slug> "<lesson>"`.
 

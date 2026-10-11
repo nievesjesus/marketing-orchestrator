@@ -2,7 +2,7 @@
 name: marketing-orchestrator
 description: Personal marketing assistant for non-technical users. Turns photos (uploaded or created with Canva or another image tool) into on-brand social posts with copy, hashtags, target audience and the best time to publish, then schedules them in Postiz after approval. Guides first-time setup in plain language. Use when the user shares images for a post, asks for social copy or hashtags, wants a post image made or branded, asks when to publish, or wants to schedule/post on social media. Not for paid-ads management or long-form blog writing.
 license: MIT
-compatibility: Works in any Agent Skills client (Claude web/Desktop/mobile, Claude Code, Codex, Cursor). Best with the Canva and Postiz connectors. Optional developer toolkit needs Python 3.9+.
+compatibility: Works in any Agent Skills client (Claude web/Desktop/mobile, Claude Code, Codex, Cursor). Best with the Canva and Postiz connectors.
 metadata:
   version: "0.4.0"
   author: Codeame
@@ -37,7 +37,7 @@ Look at the tools you have. Search for them first if your client loads tools on 
 |---|---|---|
 | Make or edit images, brand designs | Canva tools (`generate-image`, `generate-design`, `list-brand-kits`, `export-design`) | Offer setup step A in `references/getting-started.md`, or another option from section 3 |
 | Schedule and publish | Postiz tools (`integrationList`, `schedulePostTool`, `postsListTool`) | Offer setup step B in `references/getting-started.md` |
-| Brand details | A brand card in the project instructions, memory, or `assets/brands/` | Run the brand interview (section 2) |
+| Brand details | A brand card in the project instructions or memory | Run the brand interview (section 2) |
 
 Nothing connected is fine: you can still write the full post and the user can copy it. Mention once what connecting would add, and don't nag.
 
@@ -45,7 +45,7 @@ First time with this user (nothing connected and no brand card)? Offer the 5-min
 
 ## 2. Know the brand
 
-Use the brand card if one exists (project instructions, memory, or `assets/brands/<slug>/`). If there's none, run a short interview, max 6 questions, a few at a time:
+Use the brand card if one exists (project instructions or memory). If there's none, run a short interview, max 6 questions, a few at a time:
 
 1. What's the brand or person, and what do you offer?
 2. Who do you want to reach? (role, age, city, what they care about)
@@ -209,4 +209,3 @@ Learned:
 | `references/image-generation.md` | Every image option in detail, prompt recipe, what to avoid |
 | `references/platform-playbook.md` | Longer per-network guide |
 | `references/postiz-mcp.md` | Postiz connection details for every app (Claude, Claude Code, Codex, Cursor) |
-| `references/advanced.md` | For developers only: command-line toolkit, own MCP server, Gemini API, brand-kit folders |

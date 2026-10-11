@@ -1,12 +1,12 @@
 # Advanced (developers only)
 
-Never walk a non-technical user through anything on this page. Use it when the user is a developer, or when you run in an environment with a shell (Claude Code, Codex, Cursor) and the toolkit is installed.
+Never walk a non-technical user through anything on this page. Use it when the user is a developer, or when you run in an environment with a shell (Claude Code, Codex, Cursor) and the toolkit from this repo's `tools/` folder is available.
 
 ## What the toolkit adds
 
-The skill folder ships a stdlib-only Python CLI and a local MCP server over the same library:
+The repo's `tools/` folder holds a stdlib-only Python CLI and a local MCP server over the same library (not part of the shipped skill):
 
-| Capability | CLI (`python3 scripts/mkt.py …`) | Local MCP tool |
+| Capability | CLI (`python3 tools/scripts/mkt.py …`) | Local MCP tool |
 |---|---|---|
 | Health check (keys, services, deps) | `doctor` | — |
 | Brand kits (folders with `brand.json`, `voice.md`, logos, style refs) | `brand list / show / validate / init / learn` | `brand_list`, `brand_get`, `brand_learn` |
@@ -17,7 +17,7 @@ The skill folder ships a stdlib-only Python CLI and a local MCP server over the 
 | Validate a post package | `package validate / save` | `package_validate` |
 | Postiz REST: channels, slots, calendar, **upload local files**, build/create posts | `postiz …` | `postiz_*` |
 
-Setup per client (keys in `~/.config/marketing-orchestrator/.env`, `install.sh`, MCP config for Claude Desktop/Code, Codex, Cursor): `setup.md`.
+Setup per client (keys in `~/.config/marketing-orchestrator/.env`, `tools/install.sh`, MCP config for Claude Desktop/Code, Codex, Cursor): `setup.md`.
 Brand-kit folders and how they map into prompts: `branding.md`. Package JSON: `package-schema.md`. Postiz REST details: `postiz-api.md`.
 
 ## Developer workflow (CLI)
@@ -44,7 +44,7 @@ Uses Google's Gemini image models ("Nano Banana"). Needs `GEMINI_API_KEY` (https
 | `gemini-3.1-flash-lite-image` | Cheap drafts / many variations | 1K only |
 | `gemini-3.1-flash-image`, `gemini-2.5-flash-image` | Legacy, being retired | — |
 
-Model ids change; if you get a 404, check https://ai.google.dev/gemini-api/docs/image-generation and update the default in `scripts/mktlib/gemini.py` and this table.
+Model ids change; if you get a 404, check https://ai.google.dev/gemini-api/docs/image-generation and update the default in `tools/scripts/mktlib/gemini.py` and this table.
 
 Aspect ratios: `1:1 2:3 3:2 3:4 4:3 4:5 5:4 9:16 16:9 21:9`. Sizes: `1K 2K 4K` (uppercase K).
 

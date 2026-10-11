@@ -14,7 +14,7 @@
          media [--search q] | upload <file...> | build --package p.json [--type draft] [--date ISO] [--upload] [--out f]
          create <payload.json> [--approved] | delete <post_id> | analytics-post <id> | analytics-channel <id>
 
-Config: env vars or a .env file (cwd, ~/.config/marketing-orchestrator/.env, or skill folder).
+Config: env vars or a .env file (cwd, ~/.config/marketing-orchestrator/.env, or the tools/ folder).
   POSTIZ_API_KEY, POSTIZ_API_URL, GEMINI_API_KEY, GEMINI_IMAGE_MODEL, GEMINI_IMAGE_SIZE, MKT_BRANDS_DIR
 """
 import argparse

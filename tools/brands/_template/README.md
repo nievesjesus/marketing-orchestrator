@@ -1,7 +1,7 @@
 # Brand kit template
 
-Copy with `python3 scripts/mkt.py brand init <slug>` (goes to ~/.config/marketing-orchestrator/brands/<slug>)
-or `--here` to keep it inside the skill (needed for Claude Desktop/claude.ai uploads).
+Copy with `python3 tools/scripts/mkt.py brand init <slug>` (goes to ~/.config/marketing-orchestrator/brands/<slug>)
+or `--here` to keep it inside the repo's `tools/brands/` folder.
 
 Files:
 - `brand.json` — machine-readable fields (validated by `mkt.py brand validate <slug>`)

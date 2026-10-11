@@ -1,4 +1,4 @@
-"""Offline test suite. Run: python3 -m unittest discover -s tests -v"""
+"""Offline test suite. Run: python3 -m unittest discover -s tools/tests -v"""
 import base64
 import io
 import json
@@ -12,9 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
 
-ROOT = Path(__file__).resolve().parents[1]
+TOOLS = Path(__file__).resolve().parents[1]
+ROOT = TOOLS.parent
 SKILL = ROOT / "skills" / "marketing-orchestrator"
-SCRIPTS = SKILL / "scripts"
+SCRIPTS = TOOLS / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 TMP = tempfile.mkdtemp()
@@ -38,7 +39,7 @@ PNG_1PX = base64.b64encode(bytes.fromhex(
 def make_brand(slug="acme"):
     d = Path(TMP) / "brands" / slug
     (d / "style").mkdir(parents=True, exist_ok=True)
-    data = json.loads((SKILL / "assets/brands/_template/brand.json").read_text())
+    data = json.loads((TOOLS / "brands/_template/brand.json").read_text())
     data.update({"slug": slug, "name": "Acme", "default_channels": ["linkedin"],
                  "hashtags": {"branded": ["#Acme"], "always": [], "never": ["spam"]}})
     data["visual"].update({"style": "flat illustration", "avoid": "neon",
@@ -105,7 +106,8 @@ class TestBrand(unittest.TestCase):
             brand.load("nope")
 
     def test_visual_prompt_skips_todo(self):
-        p = brand.visual_prompt(brand.load("example-coffee-shop"))
+        p = brand.visual_prompt(brand.load("_template"))
+        self.assertIn("Color palette", p)
         self.assertNotIn("TODO", p)
 
     def test_visual_prompt(self):

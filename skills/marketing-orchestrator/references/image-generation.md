@@ -16,8 +16,6 @@ Pick the first option the user has. Explain choices to them in one line, in thei
 
 Default recommendation for a non-technical user: **Canva** for anything made from scratch, **their own photos** whenever possible.
 
-Developers can also call Gemini directly (best control: brand style and reference images applied automatically). See `advanced.md`.
-
 ## Before generating
 
 Write a 2–3 line brief and get an "ok":

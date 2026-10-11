@@ -2,7 +2,7 @@
 """Minimal stdio MCP server exposing the marketing-orchestrator actions. Stdlib only.
 
 Run:  python3 mcp_server.py
-Register it in Claude Desktop, Claude Code, Codex, Cursor… (see references/setup.md).
+Register it in Claude Desktop, Claude Code, Codex, Cursor… (see tools/docs/setup.md).
 It complements the official Postiz MCP: brand kits, Gemini images, local file upload to Postiz,
 timing suggestions, package validation and guarded post creation.
 """

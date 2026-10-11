@@ -2,7 +2,7 @@
 
 For a non-technical user, use the simple walkthrough in `getting-started.md` (step B). This page has the details for every app, including developer tools.
 
-Postiz runs a hosted MCP server. Once it's connected, the agent can list channels, read the calendar, schedule posts and use the media library without the CLI or a local API key. Docs: https://docs.postiz.com/mcp/setup
+Postiz runs a hosted MCP server. Once it's connected, the agent can list channels, read the calendar, schedule posts and use the media library without a local API key. Docs: https://docs.postiz.com/mcp/setup
 
 ## 1. Get your API key
 
@@ -71,4 +71,4 @@ Ask: *"List my connected social media accounts."* The agent should call `integra
 | Change settings of a scheduled post | `postSettingsTool` |
 | AI image from Postiz | `generateImageTool` (see `image-generation.md` → Providers) |
 
-The Postiz MCP can't upload a file from your computer. For local images, use our MCP's `postiz_upload` or the CLI (`mkt.py postiz upload`), or drag the file into the Postiz media library and pick it with `mediaListTool`.
+The Postiz MCP can't upload a file from your computer. For local images, drag the file into the Postiz media library and pick it with `mediaListTool`.

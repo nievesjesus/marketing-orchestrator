@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "marketing-images": {
+      "type": "http",
+      "url": "https://image-mcp.codeame.dev/mcp"
+    }
+  }
+}

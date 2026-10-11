@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python toolkit (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run unit tests (offline, stdlib only)
+        run: python -m unittest discover -s tools/tests -v
+
+  skill:
+    name: Skill validation and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate the skill
+        run: npx -y skills-ref validate skills/marketing-orchestrator
+      - name: Build the skill and plugin zips
+        run: bash build.sh
+
+  # Enable when servers/marketing-images has a package.json (plan step 3: worker scaffold).
+  # worker:
+  #   name: Worker (marketing-images)
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: servers/marketing-images
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 22
+  #         cache: npm
+  #         cache-dependency-path: servers/marketing-images/package-lock.json
+  #     - run: npm ci
+  #     - run: npx tsc --noEmit
+  #     - run: npx vitest run

@@ -102,9 +102,9 @@ def validate(slug):
 
 
 def init(slug, here=False):
-    from .config import SKILL_DIR
-    template = SKILL_DIR / "assets" / "brands" / "_template"
-    target_root = (SKILL_DIR / "assets" / "brands") if here else (USER_DIR / "brands")
+    from .config import TOOLS_DIR
+    template = TOOLS_DIR / "brands" / "_template"
+    target_root = (TOOLS_DIR / "brands") if here else (USER_DIR / "brands")
     target = target_root / slug
     if target.exists():
         raise MktError(f"{target} already exists")

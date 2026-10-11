@@ -1,7 +1,7 @@
-# Postiz API Reference (what this skill uses)
+# Postiz API Reference (what the Python toolkit uses)
 
 Docs index: https://docs.postiz.com/llms.txt — OpenAPI: https://docs.postiz.com/public-api/openapi.json
-If an endpoint below returns 404, check the OpenAPI spec and call it with `mkt.py postiz` or add a function in `scripts/mktlib/postiz.py`.
+If an endpoint below returns 404, check the OpenAPI spec and call it with `mkt.py postiz` or add a function in `tools/scripts/mktlib/postiz.py`.
 
 - Base URL (cloud): `https://api.postiz.com/public/v1`
 - Base URL (self-hosted): `https://<your-domain>/api/public/v1`

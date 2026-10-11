@@ -5,24 +5,23 @@ The package is the draft for one post idea across one or more channels. Validate
 ```json
 {
   "brand": "example-coffee-shop",
-  "idea": "Why we stopped deploying on Fridays",
+  "idea": "Saturday single-origin tasting",
   "posts": [
     {
-      "platform": "linkedin",
+      "platform": "instagram",
       "integration_id": "clx123…",
-      "objective": "authority",
-      "audience": "Engineering leaders in LATAM fintechs",
-      "pillar": "leading engineering teams",
+      "objective": "traffic",
+      "audience": "Neighbors within a 15-minute walk",
+      "pillar": "Neighborhood life",
       "language": "es",
-      "hook": "Dejamos de deployar los viernes. No por miedo.",
+      "hook": "Este sábado probamos tres cafés de origen. Vos elegís el favorito.",
       "hook_alt": "Optional second hook for A/B",
       "body": "Short paragraphs…",
-      "cta": "¿Cómo lo manejan en tu equipo?",
-      "hashtags": ["#EngineeringLeadership", "#DevOps", "#Fintech"],
-      "media": ["out/cover.png", {"id": "media-id", "path": "https://uploads.postiz.com/x.png"}],
-      "alt_text": ["Whiteboard with a deploy calendar crossed out on Fridays"],
-      "first_comment": "Write-up: https://…",
-      "carousel_name": "Friday deploys",
+      "cta": "Reservá tu lugar escribiéndonos por mensaje directo.",
+      "hashtags": ["#ExampleCoffeeShop", "#CafeDeEspecialidad", "#Barrio"],
+      "media": ["out/tasting.png", {"id": "media-id", "path": "https://uploads.postiz.com/x.png"}],
+      "alt_text": ["Three small cups of coffee on a wooden table next to a window"],
+      "first_comment": "Menu and hours: https://example.com",
       "settings": {}
     }
   ]

@@ -5,7 +5,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-SKILL_DIR = Path(__file__).resolve().parents[2]
+TOOLS_DIR = Path(__file__).resolve().parents[2]  # <repo>/tools (this file: tools/scripts/mktlib/config.py)
 USER_DIR = Path(os.environ.get("MKT_HOME", Path.home() / ".config" / "marketing-orchestrator"))
 
 
@@ -33,7 +33,7 @@ def env_files():
     files = []
     if os.environ.get("MKT_ENV_FILE"):
         files.append(Path(os.environ["MKT_ENV_FILE"]))
-    files += [Path.cwd() / ".env", USER_DIR / ".env", SKILL_DIR / ".env"]
+    files += [Path.cwd() / ".env", USER_DIR / ".env", TOOLS_DIR / ".env"]
     return files
 
 
@@ -60,11 +60,11 @@ def env(name, default=None, required=False, hint=""):
 
 
 def brand_dirs():
-    """Brand search path: explicit override, user dir, then the skill's bundled brands."""
+    """Brand search path: explicit override, user dir, then the repo's bundled brands (tools/brands)."""
     dirs = []
     if os.environ.get("MKT_BRANDS_DIR"):
         dirs.append(Path(os.environ["MKT_BRANDS_DIR"]))
-    dirs += [USER_DIR / "brands", SKILL_DIR / "assets" / "brands"]
+    dirs += [USER_DIR / "brands", TOOLS_DIR / "brands"]
     return dirs
 
 
