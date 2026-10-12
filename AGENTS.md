@@ -24,6 +24,9 @@ THIRD_PARTY_NOTICES.md, LICENSES/   ← attribution + Apache-2.0 text for the po
 servers/marketing-images/           ← portable MCP server (Node 22/TypeScript): image generation + post composer; not part of the plugin zip.
                                       Published as npm `@codeame/marketing-images` (stdio by default, `--http` for server mode) and as the
                                       Docker image `ghcr.io/nievesjesus/marketing-images` (HTTP mode)
+  scripts/readme-assets.ts          ← `npm run readme:assets`: redraws the README pictures into `.github/readme/` straight from the
+                                      render functions (fictional brands, synthetic backgrounds, no network or keys); typechecked, not shipped
+.github/readme/                     ← the README pictures (generated; never put real client names or real photos in them); not in the zips
 tools/                              ← optional Python dev toolkit; never shipped in the skill or plugin
   scripts/mkt.py                    ← CLI entry point (stdlib only)
   scripts/mcp_server.py             ← local stdio MCP server over the same library

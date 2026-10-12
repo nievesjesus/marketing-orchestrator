@@ -149,7 +149,7 @@ npm ci
 ACCESS_TOKENS=dev:devtoken123 PUBLIC_BASE_URL=http://localhost:8080 DATA_DIR=./.data npm run dev
 ```
 
-Other scripts: `npm run typecheck`, `npm test`, `npm run build`, `npm start`. The CLI from source: `npx tsx src/cli.ts --help`.
+Other scripts: `npm run typecheck`, `npm test`, `npm run build`, `npm start`, and `npm run readme:assets`, which redraws the pictures of the repository README into `.github/readme/` (calls the render functions directly with fictional brands and synthetic backgrounds: no server, network or API keys; see the header of `scripts/readme-assets.ts`). The CLI from source: `npx tsx src/cli.ts --help`.
 
 ## Docker (ghcr.io/nievesjesus/marketing-images)
 

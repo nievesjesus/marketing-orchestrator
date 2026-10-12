@@ -45,7 +45,8 @@
     "prepack": "npm run build",
     "start": "node --disable-warning=ExperimentalWarning dist/index.js",
     "test": "NODE_OPTIONS=--disable-warning=ExperimentalWarning vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "readme:assets": "tsx scripts/readme-assets.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "2.1.1",
