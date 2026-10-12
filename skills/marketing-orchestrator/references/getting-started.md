@@ -10,7 +10,7 @@ Say first what they will get, in one or two lines:
 - **Claude Pro or higher.** The Free plan allows only one custom connector and this setup uses two.
 - **Code execution and file creation turned ON** (Settings → Capabilities). Skills need it.
 - **A Postiz account** with their social networks added: Postiz Cloud (a paid service with a trial; current prices at postiz.com) or a Postiz they already have or that someone hosts for them. It must be **version 2.25 or newer** (older versions can't upload images from a link).
-- **A personal Marketing Images link**, handed over privately by whoever runs the connector (the owner). It looks like `https://<host>/mcp/<token>` and works like a password.
+- **A personal Marketing Images link**, handed over privately by whoever runs the connector (the owner). It looks like `https://<host>/mcp/<token>` and works like a password. (Users who run you inside a coding agent can instead run Marketing Images on their own computer with their own image-service keys: see step C.)
 
 Connectors are added once on the **web or Desktop** app; after that they also work in the mobile app.
 
@@ -24,7 +24,7 @@ Skip this if it's already installed (you are reading this because it is).
 2. Plugin file: **Plugins → Add → Upload plugin**. Skill-only file: **Skills → Upload**. Pick the file the owner gave them.
 3. On a Team or company plan an admin may have to allow it; then offer to continue without scheduling for now.
 
-Developer tools (Claude Code, Codex, Cursor) read the skill folder directly; see `AGENTS.md` in the repository. Only mention this to users who say they use those tools.
+Coding agents (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, VS Code Copilot…) install the skill from the repository: a plugin marketplace in Claude Code, or `npx skills add nievesjesus/marketing-orchestrator --skill marketing-orchestrator -g -a <agent>` for the others; the skill folders per agent are listed in `setup-local.md`. Only mention this to users who say they use those tools.
 
 ---
 
@@ -66,7 +66,7 @@ What it adds: AI backgrounds, finished post graphics with exact text, brand colo
 
 Check: call `list_providers`. Say what's available and what is left for today: "Ready: 3 image services, and you have N images left today."
 
-Claude Code, Codex and Cursor users: see `marketing-images.md`.
+**Running inside a coding agent** (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, VS Code Copilot…)? Ask once whether they want to use a personal link from the owner (remote) or run Marketing Images on their own computer with their own keys (local), then follow `setup-local.md`: it covers the decision, the settings file for the keys, the exact configuration for each agent, and how to check it. Never ask for keys or the link in the chat.
 
 ---
 
@@ -95,5 +95,6 @@ Ask for 1–2 photos (or offer to make an image) and one sentence about what the
 | Postiz shows no networks | Add channels inside Postiz first (B1) |
 | Postiz says unauthorized | The key changed: repeat B2–B4 with a new key |
 | Marketing Images says the link isn't valid | The link was mistyped or revoked: ask the owner for a new link |
+| In a coding agent, the Marketing Images tools don't appear | Restart or reload the agent, then see the troubleshooting table in `setup-local.md` |
 | "Daily limit reached" | The daily allowance of images or graphics is used up; it resets at 00:00 UTC. Offer own photos or try tomorrow |
 | Anything else | Save the post as a draft or give it ready to copy; never leave them without the text |

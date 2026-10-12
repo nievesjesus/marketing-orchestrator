@@ -12,7 +12,9 @@
 #                                            skills/marketing-orchestrator/**, README.md, LICENSE,
 #                                            THIRD_PARTY_NOTICES.md, LICENSES/
 #                                            (no .mcp.json: the connectors need personal links, which are secrets,
-#                                            so users add Postiz and Marketing Images themselves)
+#                                            so users add Postiz and Marketing Images themselves; and no
+#                                            .claude-plugin/marketplace.json: that file only serves
+#                                            `/plugin marketplace add nievesjesus/marketing-orchestrator` from GitHub)
 #
 # The skill is validated first (npx -y skills-ref validate); an invalid skill fails the build.
 # Needs: bash, zip, unzip, npx (Node.js).
@@ -43,7 +45,7 @@ npx -y skills-ref validate "$SKILL_REL" || die "skill validation failed"
 fm_name="$(sed -n 's/^name:[[:space:]]*//p' "$SKILL_REL/SKILL.md" | head -n 1 | tr -d '\r"'"'"' ')"
 [[ "$fm_name" == "$NAME" ]] || die "frontmatter name '$fm_name' must equal the folder name '$NAME'"
 
-for f in .claude-plugin/plugin.json README.md LICENSE THIRD_PARTY_NOTICES.md LICENSES/Apache-2.0.txt; do
+for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json README.md LICENSE THIRD_PARTY_NOTICES.md LICENSES/Apache-2.0.txt; do
   [[ -f "$f" ]] || die "$f not found"
 done
 
@@ -51,6 +53,19 @@ done
 skill_ver="$(sed -n 's/^[[:space:]]*version:[[:space:]]*//p' "$SKILL_REL/SKILL.md" | head -n 1 | tr -d '\r"'"'"' ')"
 plugin_ver="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .claude-plugin/plugin.json | head -n 1)"
 [[ -n "$skill_ver" && "$skill_ver" == "$plugin_ver" ]] || die "SKILL.md metadata.version ('$skill_ver') must equal .claude-plugin/plugin.json version ('$plugin_ver')"
+
+# The marketplace manifest must be valid JSON and list this plugin under the same name as plugin.json
+# (node is available: npx needs it).
+node -e '
+const fs = require("fs");
+const plugin = JSON.parse(fs.readFileSync(".claude-plugin/plugin.json", "utf8"));
+const market = JSON.parse(fs.readFileSync(".claude-plugin/marketplace.json", "utf8"));
+const entry = (market.plugins || []).find((p) => p.name === plugin.name);
+if (!market.name || !market.owner || !entry) {
+  console.error("marketplace.json needs name, owner and a plugins[] entry named \"" + plugin.name + "\" (the name in plugin.json)");
+  process.exit(1);
+}
+' || die ".claude-plugin/marketplace.json is invalid or does not list the plugin named in plugin.json"
 
 # A top-level bin/ makes claude.ai and Cowork refuse to install the plugin.
 [[ ! -e bin ]] || die "a top-level bin/ directory stops claude.ai and Cowork from installing the plugin; remove it"
@@ -77,7 +92,7 @@ cp LICENSES/* "$STAGE/skill/$NAME/LICENSES/"
 ( cd "$STAGE/skill" && zip -r -X -q "$SKILL_ZIP" "$NAME" "${EXCLUDES[@]}" )
 
 echo "==> Building $PLUGIN_ZIP"
-zip -r -X -q "$PLUGIN_ZIP" .claude-plugin "$SKILL_REL" README.md LICENSE THIRD_PARTY_NOTICES.md LICENSES "${EXCLUDES[@]}"
+zip -r -X -q "$PLUGIN_ZIP" .claude-plugin/plugin.json "$SKILL_REL" README.md LICENSE THIRD_PARTY_NOTICES.md LICENSES "${EXCLUDES[@]}"
 
 # --- 3. Verify the layouts ---------------------------------------------------------------------
 
@@ -95,11 +110,11 @@ for required in "$NAME/SKILL.md" "$NAME/THIRD_PARTY_NOTICES.md" "$NAME/LICENSES/
 done
 
 # Plugin zip: manifest at the zip root, the notices next to it, nothing that belongs to the dev toolkit,
-# and no .mcp.json (the connectors need personal links, which are secrets).
+# no marketplace.json, and no .mcp.json (the connectors need personal links, which are secrets).
 for required in .claude-plugin/plugin.json "$SKILL_REL/SKILL.md" README.md LICENSE THIRD_PARTY_NOTICES.md LICENSES/Apache-2.0.txt; do
   grep -qxF "$required" <<<"$plugin_entries" || die "$PLUGIN_ZIP is missing $required"
 done
-forbidden="$(grep -E '^(bin|tools|servers|docs|dist|\.github)/|^\.mcp\.json$' <<<"$plugin_entries" || true)"
+forbidden="$(grep -E '^(bin|tools|servers|docs|dist|\.github)/|^\.mcp\.json$|^\.claude-plugin/marketplace\.json$' <<<"$plugin_entries" || true)"
 [[ -z "$forbidden" ]] || die "$PLUGIN_ZIP contains paths that must not ship: $forbidden"
 
 # --- 4. Report ---------------------------------------------------------------------------------
@@ -114,4 +129,5 @@ echo
 echo "Done."
 echo "  Skill only:  $SKILL_ZIP    (Customize > Skills > Upload)"
 echo "  Plugin:      $PLUGIN_ZIP   (Customize > Plugins > Add > Upload plugin)"
-echo "  Then add the Postiz and Marketing Images connectors (Customize > Connectors); see references/getting-started.md."
+echo "  Then add the Postiz and Marketing Images connectors (Customize > Connectors; coding agents: remote link or local server);"
+echo "  see skills/$NAME/references/getting-started.md and setup-local.md."

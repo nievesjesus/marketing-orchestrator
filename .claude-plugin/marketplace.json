@@ -1,0 +1,16 @@
+{
+  "name": "codeame",
+  "owner": {
+    "name": "Codeame"
+  },
+  "metadata": {
+    "description": "Marketing skills by Codeame: plan social media campaigns, write on-brand posts, make branded graphics and schedule them in Postiz."
+  },
+  "plugins": [
+    {
+      "name": "marketing-orchestrator",
+      "source": "./",
+      "description": "Plan social media campaigns, write on-brand posts, make branded graphics (Marketing Images connector) and schedule them in Postiz, built for non-technical users."
+    }
+  ]
+}

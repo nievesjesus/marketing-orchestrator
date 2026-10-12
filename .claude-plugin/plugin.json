@@ -1,7 +1,7 @@
 {
   "name": "marketing-orchestrator",
   "displayName": "Marketing Orchestrator",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Plan social media campaigns, write on-brand posts, make branded graphics (Marketing Images connector) and schedule them in Postiz, built for non-technical users.",
   "author": { "name": "Codeame" },
   "license": "MIT"

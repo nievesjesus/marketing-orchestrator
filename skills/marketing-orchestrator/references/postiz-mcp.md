@@ -27,12 +27,12 @@ Use the header form on Cloud wherever the client supports headers, so the key is
 **Claude (web, Desktop, mobile: synced to your account)**
 Customize → Connectors → *Add custom connector* → name `Postiz`, URL = the key-in-path URL for your Postiz (Cloud or self-hosted). Then turn it on in each chat from the connectors menu. Add it on web or Desktop; it then works on mobile too. If Postiz also appears in Claude's connector directory, note that the directory entry may leave out the media-generation and clipping tools: the custom URL has them all.
 
-**Claude Code**
+**Claude Code** (`--scope user` keeps the key out of any project's `.mcp.json`)
 ```bash
 # Cloud, key in a header
-claude mcp add --transport http postiz https://mcp.postiz.com/mcp --header "Authorization: Bearer $POSTIZ_API_KEY"
+claude mcp add --transport http --scope user postiz https://mcp.postiz.com/mcp --header "Authorization: Bearer $POSTIZ_API_KEY"
 # Self-hosted, key in the path
-claude mcp add --transport http postiz https://<your-postiz-domain>/api/mcp/<API_KEY>
+claude mcp add --transport http --scope user postiz https://<your-postiz-domain>/api/mcp/<API_KEY>
 ```
 
 **Codex**: `~/.codex/config.toml` (on Cloud the key comes from the environment and never sits in the file):
@@ -76,7 +76,7 @@ Ask: *"List my connected social media accounts."* The assistant should call `int
 | Change the settings of a scheduled post | `postSettingsTool` |
 | AI image made by Postiz (credits of their plan) | `generateImageTool`; Postiz also has video tools and `ask_postiz` for questions about Postiz itself |
 
-**Images:** Postiz rejects attachments that aren't hosted in its own upload domain. Anything that comes from elsewhere (Marketing Images links, Canva exports) must go through `uploadFromUrlTool` first, and the returned `path` (with its `id`) is what you attach. Photos uploaded with `uploadWidgetTool` are already there. On an older Postiz without upload tools, if a media list tool such as `mediaListTool` exists use its `path`; otherwise save a draft and ask the user to attach the image inside Postiz.
+**Images:** Postiz rejects attachments that aren't hosted in its own upload domain. Anything that comes from elsewhere (Marketing Images links, Canva exports) must go through `uploadFromUrlTool` first, and the returned `path` (with its `id`) is what you attach. Photos uploaded with `uploadWidgetTool` are already there, and so are images from a local Marketing Images server that has `POSTIZ_URL` and `POSTIZ_API_KEY` set: their result carries `postiz: {id, path}`, so attach that `path` and skip `uploadFromUrlTool` (`setup-local.md`). On an older Postiz without upload tools, if a media list tool such as `mediaListTool` exists use its `path`; otherwise save a draft and ask the user to attach the image inside Postiz.
 
 **Content:** simple HTML, one `<p>` per line. Allowed tags: `h1`, `h2`, `h3`, `strong`, `u`, `ul`, `li`, `p`; never nest `u` and `strong` together. Extra items on LinkedIn and Facebook become comments (use that for the first comment).
 

@@ -7,7 +7,7 @@ Pick the first option that fits. Explain choices in one line, in the user's lang
 | # | Option | Setup for the user | Cost | Good at | Limits |
 |---|---|---|---|---|---|
 | 1 | **Their own photos** (Postiz upload widget) | Postiz connected | Free | Real, authentic posts (usually perform best) | They need photos |
-| 2 | **Marketing Images** (`generate_image`, `edit_image`, then `compose_post` / `compose_custom` / `compose_carousel`) | Personal link added as a connector | AI images cost money (roughly US$0.003–0.13 each, `estimate_cost` gives the exact quote); composed graphics are free; daily limits | New images, restyling their photo, finished graphics with exact text, brand colors and logo, carousels | Public links kept about 30 days; no real people, brands or characters |
+| 2 | **Marketing Images** (`generate_image`, `edit_image`, then `compose_post` / `compose_custom` / `compose_carousel`) | Personal link added as a connector, or a local server in a coding agent (`setup-local.md`) | AI images cost money (roughly US$0.003–0.13 each, `estimate_cost` gives the exact quote); composed graphics are free; daily limits | New images, restyling their photo, finished graphics with exact text, brand colors and logo, carousels | Remote: public links kept about 30 days. Local: files on the user's computer. No real people, brands or characters |
 | 3 | **Canva** (`generate-image`, `generate-design`) | Connect Canva (1 click + sign in) | Free plan: about 20 AI uses a month; more on paid plans | Illustrations, designs built in Canva, editing there | Brand Kit needs Canva Pro/Teams |
 | 4 | **Adobe for Creativity** | Connect Adobe; works as guest, more with a free account | Free to start | Editing photos, removing backgrounds, quick layouts | Making new images from text may not be available |
 | 5 | **Postiz** `generateImageTool` | Already there if Postiz is connected | Postiz plan credits | A quick image straight into the Postiz library | Little control over style, no exact text |
@@ -115,7 +115,7 @@ Formats: `square` 1080×1080, `portrait` 1080×1350, `story` 1080×1920, `landsc
 - Look at every result before showing it: subject right, colors on-brand, text spelled correctly, no strange hands or faces, nothing cropped. Read the `warnings`.
 - Fix and render again at most twice; then show the best one and ask what to change.
 - Use the brand's real logo (saved brand or a file the user gave). Logos are never drawn by AI.
-- Give the final image links to Postiz `uploadFromUrlTool` only after the user approves the post.
+- Give the final image links to Postiz `uploadFromUrlTool` only after the user approves the post. (A local server with Postiz settings has already uploaded the final graphics from `compose_*`: use `postiz.path`, or `postiz_paths` in order for a carousel, as the attachment.)
 
 ## Never
 
