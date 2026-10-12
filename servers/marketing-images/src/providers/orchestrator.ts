@@ -153,9 +153,25 @@ export async function runImageRequest(
   deps: RunDeps,
   hooks: RunHooks = {},
 ): Promise<ImageOutcome> {
-  const available = PROVIDER_IDS.filter((id) => deps.adapters[id] !== undefined);
+  let available = PROVIDER_IDS.filter((id) => deps.adapters[id] !== undefined);
   const deadline = deps.now() + ctx.config.syncWaitMs;
-  for (const link of [...(req.imageUrl ? [req.imageUrl] : []), ...req.references]) assertPublicReference(link, ctx.config.allowInsecureLocalhost);
+  const links = [...(req.imageUrl ? [req.imageUrl] : []), ...req.references];
+  // Local `file://` images (stdio mode) are read from disk and sent as bytes, which only Gemini accepts: fal and
+  // Leonardo download reference links themselves, so a file on this machine is out of their reach.
+  const localLinks = links.filter((link) => ctx.localFiles?.isLocalRef(link));
+  for (const link of links) if (!localLinks.includes(link)) assertPublicReference(link, ctx.config.allowInsecureLocalhost);
+  if (localLinks.length > 0) {
+    available = available.filter((id) => id === 'gemini');
+    if ((req.provider !== 'auto' && req.provider !== 'gemini') || available.length === 0) {
+      throw new UserFacingError(
+        'local_reference_unsupported',
+        'A local image file can only be used as a reference with Gemini: fal.ai and Leonardo download reference images themselves, so they cannot reach a file on this computer.',
+        available.length === 0
+          ? 'Set GEMINI_API_KEY, or use a public https link to the image instead.'
+          : 'Use provider "gemini" (or "auto"), or a public https link to the image instead.',
+      );
+    }
+  }
   const plan = planRoute({
     task: req.task,
     provider: req.provider,

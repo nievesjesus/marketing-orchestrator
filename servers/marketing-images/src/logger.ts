@@ -1,5 +1,6 @@
 /**
- * Structured JSON logger: one line per event on stdout.
+ * Structured JSON logger: one line per event on stdout (HTTP mode) or stderr (stdio mode, where stdout belongs
+ * to the MCP protocol).
  *
  * Secrets never belong in log fields. As a safety net the logger also masks
  * every registered secret (access tokens, API keys) if one slips into a
@@ -26,6 +27,11 @@ export interface LoggerOptions {
   /** Where lines go. Defaults to stdout. */
   sink?: (line: string) => void;
 }
+
+/** Log sink for stdio mode: stdout carries only MCP frames, so every log line goes to stderr. */
+export const stderrSink = (line: string): void => {
+  process.stderr.write(`${line}\n`);
+};
 
 export function serializeError(err: unknown): LogFields {
   if (err instanceof Error) {

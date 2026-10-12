@@ -1,16 +1,48 @@
 {
-  "name": "marketing-images",
+  "name": "@codeame/marketing-images",
   "version": "0.1.0",
-  "private": true,
-  "description": "Portable MCP server (Streamable HTTP): image generation and deterministic post-graphic composer for the marketing-orchestrator plugin.",
+  "description": "MCP server for social-media graphics: AI image generation (Gemini, fal.ai, Leonardo) and a deterministic post composer. Runs locally over stdio or as an HTTP server.",
   "license": "MIT",
+  "author": "Codeame, LLC",
   "type": "module",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "marketing",
+    "social-media",
+    "image-generation",
+    "postiz"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nievesjesus/marketing-orchestrator.git",
+    "directory": "servers/marketing-images"
+  },
+  "homepage": "https://github.com/nievesjesus/marketing-orchestrator/tree/main/servers/marketing-images#readme",
+  "bugs": {
+    "url": "https://github.com/nievesjesus/marketing-orchestrator/issues"
+  },
+  "bin": {
+    "marketing-images": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "fonts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=22.13"
   },
   "scripts": {
     "dev": "NODE_ENV=development NODE_OPTIONS=--disable-warning=ExperimentalWarning tsx watch --env-file-if-exists=.env src/index.ts",
-    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').cpSync('src/render/templates/starters','dist/render/templates/starters',{recursive:true})\"",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json && node -e \"require('node:fs').cpSync('src/render/templates/starters','dist/render/templates/starters',{recursive:true})\"",
+    "prepack": "npm run build",
     "start": "node --disable-warning=ExperimentalWarning dist/index.js",
     "test": "NODE_OPTIONS=--disable-warning=ExperimentalWarning vitest run",
     "typecheck": "tsc --noEmit"

@@ -63,6 +63,7 @@ describe('MCP tools over HTTP', () => {
       'list_templates',
       'save_brand',
       'save_template',
+      'upload_to_postiz',
     ]);
     for (const t of tools) {
       expect(t.name.length).toBeLessThanOrEqual(64);
@@ -88,6 +89,25 @@ describe('MCP tools over HTTP', () => {
     expect(byName.compose_custom!.description).toMatch(/\{\{brand\.color/);
     expect(byName.compose_custom!.description).toMatch(/data-fit/);
     expect(byName.compose_post!.inputSchema.required).toEqual(['format']);
+    // the Postiz hand-off: every image tool takes upload_to_postiz and says what to do with `postiz.path`
+    for (const name of ['generate_image', 'edit_image', 'get_job', 'compose_post', 'compose_custom', 'compose_carousel']) {
+      expect(byName[name]!.inputSchema.properties.upload_to_postiz, name).toMatchObject({ type: 'boolean' });
+      expect(byName[name]!.inputSchema.required ?? [], name).not.toContain('upload_to_postiz');
+      expect(byName[name]!.description, name).toMatch(/postiz\.path|upload_to_postiz/);
+    }
+    for (const name of ['compose_post', 'compose_custom', 'compose_carousel', 'generate_image', 'edit_image']) {
+      expect(byName[name]!.description, name).toMatch(/skip uploadFromUrlTool/);
+    }
+    // defaults: pictures (generate/edit/get_job) are NOT uploaded unless upload_to_postiz=true; the final graphics (compose_*) are uploaded automatically
+    for (const name of ['generate_image', 'edit_image', 'get_job']) {
+      expect(byName[name]!.description, name).toMatch(/does not upload to Postiz unless upload_to_postiz=true/);
+      expect(byName[name]!.inputSchema.properties.upload_to_postiz.description, name).toMatch(/NOT uploaded/);
+    }
+    for (const name of ['compose_post', 'compose_custom', 'compose_carousel']) {
+      expect(byName[name]!.description, name).toMatch(/uploads (the final graphic|every final slide) automatically/);
+      expect(byName[name]!.inputSchema.properties.upload_to_postiz.description, name).toMatch(/uploaded automatically/);
+    }
+    expect(byName.upload_to_postiz!.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true });
     expect(byName.compose_post!.description).toMatch(/never ask an AI image model/i);
     // field docs reach the model
     expect(byName.compose_post!.inputSchema.properties.texts.properties.headline.description).toMatch(/SHORT/);

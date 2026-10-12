@@ -7,7 +7,7 @@ import { RATIOS } from '../models.js';
 import { adaptersFor } from '../providers/index.js';
 import { defaultDeps, runImageRequest } from '../providers/orchestrator.js';
 import { assertPromptAllowed } from '../safety.js';
-import { brandField, logCandidate, modelField, numImagesField, outcomeResult, providerField, sizeField } from './imageResult.js';
+import { brandField, logCandidate, modelField, numImagesField, outcomeResult, providerField, sizeField, uploadField } from './imageResult.js';
 import { runTool } from './run.js';
 
 const inputSchema = z.object({
@@ -23,6 +23,7 @@ const inputSchema = z.object({
   style: z.string().max(200).optional().describe('Optional visual style to apply, in a few words. It wins over the brand’s photo style where they differ.'),
   brand: brandField,
   seed: z.number().int().min(0).max(2147483647).optional(),
+  upload_to_postiz: uploadField,
 });
 
 export function registerEditImage(server: McpServer, ctx: AppContext, user: string): void {
@@ -38,7 +39,9 @@ export function registerEditImage(server: McpServer, ctx: AppContext, user: stri
         'Asking to add a real person, another company’s logo or a cartoon character is refused. ' +
         'The answer says which provider was used and why another was tried first (`fallback_from`). If `status` is "pending", call get_job with the `job_id` after about 15 seconds. ' +
         'Pass `brand` (a saved brand’s slug, see list_brands, or an inline object) to steer the edit toward the company’s photo style and colors. ' +
-        'To put a headline on the result, use compose_post with the new link as the background.',
+        'To put a headline on the result, use compose_post with the new link as the background. ' +
+        'In local stdio mode each image also has `file_path`. edit_image does not upload to Postiz unless upload_to_postiz=true: if a headline will be added afterwards, compose_post uploads the final graphic automatically when Postiz credentials are configured. ' +
+        'Pass upload_to_postiz=true only when the edited picture itself is the finished image: each image then has `postiz.path`, which you use directly as the Postiz attachment (skip uploadFromUrlTool). Postiz allows only 30 uploads per hour.',
       inputSchema,
       annotations: { title: 'Edit or restyle a photo with AI', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
@@ -71,7 +74,7 @@ export function registerEditImage(server: McpServer, ctx: AppContext, user: stri
           defaultDeps(adaptersFor(ctx)),
           { onCandidate: logCandidate(meta) },
         );
-        return outcomeResult(ctx, user, outcome, meta);
+        return outcomeResult(ctx, user, outcome, meta, args.upload_to_postiz);
       }),
   );
 }

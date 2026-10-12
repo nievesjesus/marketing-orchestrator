@@ -10,6 +10,7 @@ import { FORMAT_NAMES } from '../render/formats.js';
 import { makePreview, PreviewBudget } from '../render/preview.js';
 import type { RenderWarning } from '../render/warnings.js';
 import { BLOCKING_WARNINGS, CUSTOM_BLOCKING_WARNINGS, assetsSchema, brandArgSchema, hexColor as hex, renderSavedTemplate, resolveTemplateRef, variablesSchema } from './shared.js';
+import { fileRef, handoffClause, postizFor, uploadToPostizField } from './postizHelpers.js';
 import { jsonResult, runTool } from './run.js';
 
 export const textsSchema = z.object({
@@ -56,6 +57,7 @@ const inputSchema = z.object({
   assets: assetsSchema.optional().describe('Saved templates only: image links for the template’s image variables ({"hero": "https://..."}).'),
   brand: brandArgSchema.optional(),
   options: optionsSchema.optional(),
+  upload_to_postiz: uploadToPostizField,
 });
 
 export function registerComposePost(server: McpServer, ctx: AppContext, user: string): void {
@@ -71,7 +73,8 @@ export function registerComposePost(server: McpServer, ctx: AppContext, user: st
         'Typical use: get the copy approved first, then call this with the photo link the user chose (or just a brand color), show the returned preview to the user, and only then pass the returned `url` to the scheduling tool (for example Postiz uploadFromUrlTool). ' +
         'Pass `brand` as the slug of a saved brand (list_brands) so every post matches the company style. ' +
         'Always read `warnings`: if one says the headline is too long, ask for or write a shorter headline and call again; if contrast is low, retry with options.scrim = "strong". ' +
-        'The link stays available for about 30 days. Creating a graphic does not publish anything. For several slides use compose_carousel; for a one-off layout of your own design use compose_custom.',
+        'The link stays available for about 30 days. In local (stdio) mode the result also has `file_path`, the image on the user’s computer. When Postiz credentials are configured, this tool uploads the final graphic automatically (pass upload_to_postiz=false to skip it): if the result has `postiz.path`, the image is already in Postiz, so use that path directly as the Postiz attachment (skip uploadFromUrlTool); a `postiz_error` is only a warning (call upload_to_postiz once, or attach the file yourself). ' +
+        'Creating a graphic does not publish anything. For several slides use compose_carousel; for a one-off layout of your own design use compose_custom.',
       inputSchema,
       annotations: { title: 'Create a finished post graphic', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
@@ -120,9 +123,12 @@ export function registerComposePost(server: McpServer, ctx: AppContext, user: st
           meta.warnings = warnings.map((w) => w.code);
 
           const needsAttention = warnings.some((w) => BLOCKING_WARNINGS.has(w.code));
+          const postiz = await postizFor(ctx, stored.key, args.upload_to_postiz, { autoDefault: true, data: out.data, meta, draft: needsAttention });
           return jsonResult(
             {
               url: stored.url,
+              ...fileRef(ctx, stored.key),
+              ...postiz,
               width: out.width,
               height: out.height,
               format: out.applied.format,
@@ -136,7 +142,7 @@ export function registerComposePost(server: McpServer, ctx: AppContext, user: st
               graphics_left_today: quota.left,
               next_step: needsAttention
                 ? 'Do not use this image yet: fix the warning (usually a shorter headline) and call compose_post again.'
-                : 'Show the preview to the user. Once they approve, give `url` to the scheduling tool (e.g. Postiz uploadFromUrlTool); the link is kept for about 30 days.',
+                : `Show the preview to the user. Once they approve, ${handoffClause(ctx, 'one', postiz.postiz !== undefined)}`,
             },
             preview ? [{ type: 'image', data: preview.data.toString('base64'), mimeType: preview.mimeType }] : [],
           );
@@ -162,9 +168,12 @@ export function registerComposePost(server: McpServer, ctx: AppContext, user: st
         meta.bytes = stored.bytes;
         meta.warnings = warnings.map((w) => w.code);
         const needsAttention = warnings.some((w) => CUSTOM_BLOCKING_WARNINGS.has(w.code));
+        const postiz = await postizFor(ctx, stored.key, args.upload_to_postiz, { autoDefault: true, data: out.data, meta, draft: needsAttention });
         return jsonResult(
           {
             url: stored.url,
+            ...fileRef(ctx, stored.key),
+            ...postiz,
             width: out.width,
             height: out.height,
             format: args.format,
@@ -179,7 +188,7 @@ export function registerComposePost(server: McpServer, ctx: AppContext, user: st
             graphics_left_today: quota.left,
             next_step: needsAttention
               ? 'Do not use this image yet: fix the warnings (shorter texts, another format) and call compose_post again.'
-              : 'Show the preview to the user. Once they approve, give `url` to the scheduling tool (e.g. Postiz uploadFromUrlTool); the link is kept for about 30 days.',
+              : `Show the preview to the user. Once they approve, ${handoffClause(ctx, 'one', postiz.postiz !== undefined)}`,
           },
           preview ? [{ type: 'image', data: preview.data.toString('base64'), mimeType: preview.mimeType }] : [],
         );

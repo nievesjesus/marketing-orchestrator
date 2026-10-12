@@ -57,5 +57,9 @@ jobs:
         run: npm run typecheck
       - name: Unit and rendering tests (offline)
         run: npm test
+      - name: Build the package
+        run: npm run build
+      - name: Check the npm package contents
+        run: npm pack --dry-run
       - name: Build the Docker image (no push)
         run: docker build -t marketing-images:ci .

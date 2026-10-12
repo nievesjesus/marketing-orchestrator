@@ -12,6 +12,10 @@ RUN npm run build && npm prune --omit=dev
 
 # ---- runtime ----------------------------------------------------------------------------
 FROM node:22-bookworm-slim AS runtime
+# Links the GHCR package to the repository (and its README/license) on GitHub.
+LABEL org.opencontainers.image.source="https://github.com/nievesjesus/marketing-orchestrator" \
+      org.opencontainers.image.description="Marketing Images MCP server: AI image generation and a deterministic post composer (HTTP)." \
+      org.opencontainers.image.licenses="MIT"
 ENV NODE_ENV=production \
     PORT=8080 \
     DATA_DIR=/data
@@ -35,5 +39,7 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
+# HTTP is the container's mode (tokens required). `dist/index.js` is the HTTP-only entry; the same image can also run the
+# CLI, e.g. `docker run -i --rm <image> node dist/cli.js --stdio`.
 # node:sqlite still prints an ExperimentalWarning; silence just that one.
 CMD ["node", "--disable-warning=ExperimentalWarning", "dist/index.js"]

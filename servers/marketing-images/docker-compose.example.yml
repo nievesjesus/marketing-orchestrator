@@ -1,11 +1,12 @@
 # Example: run marketing-images with Docker Compose.
-#   cp .env.example .env     # fill in ACCESS_TOKENS and the provider keys you have
+#   cp .env.example .env     # fill in ACCESS_TOKENS and the provider keys you have (optionally POSTIZ_URL/POSTIZ_API_KEY + POSTIZ_ALLOW_IN_HTTP=true)
 #   cp docker-compose.example.yml docker-compose.yml
 #   docker compose up -d --build
 # Then add it to Claude Code:
 #   claude mcp add --transport http marketing-images http://localhost:8080/mcp/<token>
 services:
   marketing-images:
+    # Build locally (below), or pull the published image: ghcr.io/nievesjesus/marketing-images:latest
     build: .
     image: marketing-images:local
     restart: unless-stopped

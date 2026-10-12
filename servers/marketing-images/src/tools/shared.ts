@@ -151,9 +151,9 @@ export async function thumbnail(image: Buffer, side = 640): Promise<Buffer> {
 /** True when `url` is one of our stored images that still exists (the retention sweep deletes old files). */
 export async function isStoredUrl(ctx: AppContext, url: string | null | undefined): Promise<boolean> {
   if (!url) return false;
-  const prefix = `${ctx.config.publicBaseUrl}/i/`;
-  if (!url.startsWith(prefix)) return false;
-  return (await ctx.storage.open(url.slice(prefix.length))) !== null;
+  const key = ctx.storage.keyForUrl(url);
+  if (!key) return false;
+  return (await ctx.storage.open(key)) !== null;
 }
 
 /** Bump when the built-in templates or the catalog sample content change, so cached previews are rendered again. */

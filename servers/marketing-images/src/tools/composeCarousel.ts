@@ -9,6 +9,7 @@ import { FORMAT_NAMES } from '../render/formats.js';
 import { makePreview, PreviewBudget } from '../render/preview.js';
 import type { RenderWarning } from '../render/warnings.js';
 import { backgroundSchema, optionsSchema, textsSchema } from './composePost.js';
+import { fileRef, handoffClause, postizFor, uploadToPostizField } from './postizHelpers.js';
 import { jsonResult, runTool } from './run.js';
 import { BLOCKING_WARNINGS, CUSTOM_BLOCKING_WARNINGS, assetsSchema, brandArgSchema, renderSavedTemplate, resolveTemplateRef, variablesSchema, type TemplateRef } from './shared.js';
 
@@ -39,6 +40,7 @@ const inputSchema = z.object({
     .union([z.boolean(), z.object({ position: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).optional() })])
     .optional()
     .describe('Slide counter chip such as "2/5" in a corner (default true; false for none). It never covers the logo.'),
+  upload_to_postiz: uploadToPostizField,
 });
 
 export function registerComposeCarousel(server: McpServer, ctx: AppContext, user: string): void {
@@ -51,7 +53,8 @@ export function registerComposeCarousel(server: McpServer, ctx: AppContext, user
         'or one of the user’s saved templates, with its own texts, variables, images and background. By default the first slide is a cover, the last a closing call to action and the ones in between numbered points, ' +
         'and a small "2/5" counter chip is drawn in a corner. Returns the image links IN ORDER (`urls`) plus small previews of the first 3 slides. ' +
         'Each slide counts as one composed graphic against the daily limit. Free (no AI cost), the same input gives the same pictures. ' +
-        'Get the slide copy approved first; read `warnings` per slide (too-long headline, low contrast) and fix them before showing the user; then hand the `urls` in order to the scheduling tool (e.g. Postiz uploadFromUrlTool). Nothing is published by this tool.',
+        'Get the slide copy approved first; read `warnings` per slide (too-long headline, low contrast) and fix them before showing the user; then hand the `urls` in order to the scheduling tool (e.g. Postiz uploadFromUrlTool). Nothing is published by this tool. ' +
+        'In local (stdio) mode each slide also has `file_path`. When Postiz credentials are configured, this tool uploads every final slide automatically (pass upload_to_postiz=false to skip it): the slides then have `postiz.path` and `postiz_paths` lists them in order, so use those paths directly, in that order, as the Postiz attachments (skip uploadFromUrlTool). A `postiz_error` on a slide is only a warning (call upload_to_postiz for that slide, or attach the file yourself). Each upload counts against Postiz’s 30 requests per hour.',
       inputSchema,
       annotations: { title: 'Create a carousel of post graphics', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
@@ -94,6 +97,7 @@ export function registerComposeCarousel(server: McpServer, ctx: AppContext, user
         const slides: Record<string, unknown>[] = [];
         const urls: string[] = [];
         const allWarnings: (RenderWarning & { slide: number })[] = [];
+        const postizPaths: string[] = [];
         let pointNumber = 0;
         let left = before.left;
 
@@ -146,15 +150,20 @@ export function registerComposeCarousel(server: McpServer, ctx: AppContext, user
               }
             }
             for (const w of warnings) allWarnings.push({ ...w, slide: i + 1 });
+            const slideNeedsAttention = warnings.some((w) => blocking.has(w.code));
+            const postiz = await postizFor(ctx, stored.key, args.upload_to_postiz, { autoDefault: true, data, meta, draft: slideNeedsAttention });
+            if (postiz.postiz) postizPaths.push(postiz.postiz.path);
             slides.push({
               slide: i + 1,
               url: stored.url,
+              ...fileRef(ctx, stored.key),
+              ...postiz,
               template: templateName,
               width,
               height,
               output: ext,
               warnings,
-              needs_attention: warnings.some((w) => blocking.has(w.code)),
+              needs_attention: slideNeedsAttention,
             });
           } catch (err) {
             if (isUserFacingError(err)) throw new UserFacingError(err.code, `Slide ${i + 1} of ${total}: ${err.message}${i > 0 ? ` (slides 1-${i} were drawn: ${urls.join(' ')})` : ''}`, err.suggestion);
@@ -163,12 +172,14 @@ export function registerComposeCarousel(server: McpServer, ctx: AppContext, user
         }
 
         const needsAttention = slides.some((s) => s.needs_attention === true);
+        const allUploaded = postizPaths.length === total;
         meta.warnings = allWarnings.map((w) => w.code);
         return jsonResult(
           {
             count: total,
             format: args.format,
             urls,
+            ...(allUploaded ? { postiz_paths: postizPaths } : {}),
             slides,
             previews_for_slides: images.map((_, i) => i + 1),
             ...(brand.slug ? { brand: brand.slug } : {}),
@@ -177,7 +188,7 @@ export function registerComposeCarousel(server: McpServer, ctx: AppContext, user
             graphics_left_today: left,
             next_step: needsAttention
               ? 'Some slides need attention (see `slides[].warnings`): fix those texts and call compose_carousel again before showing the user.'
-              : 'Show the previews to the user. Once they approve, give the `urls` (in this order) to the scheduling tool (e.g. Postiz uploadFromUrlTool); the links are kept for about 30 days.',
+              : `Show the previews to the user. Once they approve, ${handoffClause(ctx, 'many', allUploaded)}`,
           },
           images,
         );

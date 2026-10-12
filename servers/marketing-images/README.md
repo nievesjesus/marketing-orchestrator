@@ -1,16 +1,21 @@
-# marketing-images
+# @codeame/marketing-images
 
-A portable [MCP](https://modelcontextprotocol.io) server (Node 22 + TypeScript, one Docker image) for the
-marketing-orchestrator plugin. It creates **finished social-media graphics**: your photo, color or gradient plus a
-headline, short paragraph, button, brand colors and logo, in every common post size. The text is drawn by the server
-(Satori + resvg + sharp), so it is always sharp and spelled exactly as written. Every result is a public image link
-that the scheduling tool (Postiz `uploadFromUrlTool`) can copy.
+An [MCP](https://modelcontextprotocol.io) server (Node 22 + TypeScript) for the marketing-orchestrator plugin that creates **finished
+social-media graphics**: your photo, color or gradient plus a headline, short paragraph, button, brand colors and logo, in every common post
+size. The text is drawn by the server (Satori + resvg + sharp), so it is always sharp and spelled exactly as written.
 
-AI image generation and editing use Gemini, fal.ai and Leonardo through the model catalog in `src/models.ts`.
+It runs two ways from the same code:
 
-Typical flow: save the company brand once (`save_brand`), make a text-free background with `generate_image` (or take a photo URL from the user),
-put the exact text on it with `compose_post` / `compose_custom` / `compose_carousel`, and hand the result URL to the scheduling tool
-(Postiz `uploadFromUrlTool`). Use `estimate_cost` before spending on image generation.
+- **Locally over stdio** (`npx -y @codeame/marketing-images`): one MCP client, no access token, images saved on your computer. Works with any
+  coding agent or MCP client that can launch a command.
+- **As an HTTP server** (Docker image, or `marketing-images --http`): several people, a secret link per person, public image links.
+
+AI image generation and editing use Gemini, fal.ai and Leonardo through the model catalog in `src/models.ts`. If you have a Postiz account the
+server can also upload the finished graphics straight to it ([Postiz direct upload](#postiz-direct-upload)).
+
+Typical flow: save the company brand once (`save_brand`), make a text-free background with `generate_image` (or take a photo the user gives you),
+put the exact text on it with `compose_post` / `compose_custom` / `compose_carousel`, and hand the result to the scheduling tool (Postiz).
+Use `estimate_cost` before spending on image generation.
 
 ## Tools
 
@@ -29,9 +34,16 @@ put the exact text on it with `compose_post` / `compose_custom` / `compose_carou
 | `compose_carousel` | 2 to 10 slides, shared brand, optional "2/5" counter chip; links in order, previews of the first 3. |
 | `compose_custom` | Draws a layout the agent designs as HTML with inline styles (see below). |
 | `save_brand`, `list_brands`, `get_brand`, `delete_brand` | Saved brands (see below). |
+| `upload_to_postiz` | Uploads an image this server made (its `url` or `file_path`) to Postiz and returns `postiz.path` ([details](#postiz-direct-upload)). Needs `POSTIZ_URL` and `POSTIZ_API_KEY`. |
 
 Every compose tool takes `brand` as the **slug of a saved brand** (own first, then shared) or an inline object. Each slide of a carousel and each
 composed graphic counts as one render against `DAILY_RENDER_LIMIT`.
+
+Every tool that makes an image returns its `url`. In **local (stdio) mode** the result also has `file_path`, the absolute path of the file on your
+computer, and `url` is a `file://` link (unless you set `PUBLIC_BASE_URL`). Those local links work as input for this server's own tools (a generated
+picture as the `background.image_url` of `compose_post`, as the `image_url` of `edit_image`), but remote services such as Postiz's `uploadFromUrlTool`
+cannot reach them: use [`upload_to_postiz`](#postiz-direct-upload) or attach the file from `file_path`. `edit_image` and reference images can use local
+files only with Gemini (fal.ai and Leonardo download reference links themselves).
 
 ### Custom layouts (`compose_custom`) and saved templates
 
@@ -57,15 +69,71 @@ host of the source link is remembered). It returns a brand sheet picture (palett
 as color names plus hex, for example `Brand palette: dark blue (#1F3A5F), amber (#F2A541)`) are appended to the prompt. An explicit `style` stays and wins where it differs, and `text_on_image` behaves as before.
 Templates and brands are stored in the same `app.db` (tables `templates`, `brands`, `preview_cache`); the owner is the access-token name and other owners' private ones are never visible.
 
-## Run locally
+## Run locally (stdio) with any coding agent
 
-```bash
-source ~/.nvm/nvm.sh && nvm use      # Node 22 (see .nvmrc)
-npm ci
-ACCESS_TOKENS=dev:devtoken123 PUBLIC_BASE_URL=http://localhost:8080 DATA_DIR=./.data npm run dev
+Requires Node 22.13 or newer. Nothing to install: the MCP client launches the package with `npx`.
+
+1. Create a settings file that only you can read (every variable is listed in [`.env.example`](https://github.com/nievesjesus/marketing-orchestrator/blob/main/servers/marketing-images/.env.example)):
+
+   ```bash
+   mkdir -p ~/.config/marketing-images
+   cat > ~/.config/marketing-images/.env <<'EOF'
+   GEMINI_API_KEY=your-gemini-key
+   # FAL_KEY=
+   # LEONARDO_API_KEY=
+   # POSTIZ_URL=https://api.postiz.com
+   # POSTIZ_API_KEY=
+   EOF
+   chmod 600 ~/.config/marketing-images/.env
+   ```
+
+   The server also looks in `$XDG_CONFIG_HOME/marketing-images/.env`; `--env PATH` picks any other file. Real environment variables win over the file
+   (so an MCP client's `env` block can override one value), an empty variable counts as unset, and a file readable by other users only produces a warning on
+   stderr ("run chmod 600"). Values are never logged. (The flag is `--env`, not `--env-file`: Node 22 intercepts `--env-file` itself before this program sees it.)
+
+2. Register the command with your MCP client. Most clients accept this generic stdio entry:
+
+   ```json
+   {
+     "mcpServers": {
+       "marketing-images": {
+         "command": "npx",
+         "args": ["-y", "@codeame/marketing-images", "--env", "/Users/you/.config/marketing-images/.env"]
+       }
+     }
+   }
+   ```
+
+   Without `--env` the default location above is used, so `"args": ["-y", "@codeame/marketing-images"]` is enough. Check it from a terminal with
+   `npx -y @codeame/marketing-images --help`.
+
+What is different in this mode:
+
+- **One local user** (the owner name is `local`): no access tokens, and `ACCESS_TOKENS` is ignored if it is in a shared env file.
+- **stdout carries only MCP messages.** Logs are JSON lines on stderr. Closing stdin (the client exiting) stops the server.
+- **Data** lives in `~/.marketing-images/` (`--data-dir PATH`, `DATA_DIR` or `MARKETING_IMAGES_HOME` change it): `app.db` (brands, templates, quota), `images/{yyyy}/{mm}/`,
+  `fonts/` and `brands/`. Images older than `RETENTION_DAYS` (30) are deleted. The daily limits (`DAILY_IMAGE_LIMIT`, `DAILY_USD_LIMIT`, `DAILY_RENDER_LIMIT`) still apply.
+- **Local photos:** by default only images this server made can be read back by `file://` URL. To use your own photos as backgrounds, logos or edit sources,
+  list their folders in `LOCAL_IMAGE_DIRS` (absolute paths or `~/...`, separated by commas; `:` also works on macOS/Linux and `;` on Windows). Files are checked by their real path (symlinks out of the folders are refused) and by their first bytes.
+
+Command line:
+
+```text
+marketing-images [--stdio | --http] [--port N] [--env PATH] [--data-dir PATH] [--help] [--version]
 ```
 
-Check it: `curl localhost:8080/healthz`. Other scripts: `npm run typecheck`, `npm test`, `npm run build`, `npm start`.
+## Run as a server (HTTP)
+
+For several people, or when the image links must be public (Postiz copies them). Tokens are required: `ACCESS_TOKENS=name:token,name:token`
+(`openssl rand -hex 24` for each token; the name keys quota and logs).
+
+```bash
+ACCESS_TOKENS=me:$(openssl rand -hex 24) PUBLIC_BASE_URL=http://localhost:8080 npx -y @codeame/marketing-images --http --port 8080
+curl localhost:8080/healthz
+```
+
+`--http` from the command line keeps its data in `~/.marketing-images` (unless `DATA_DIR`/`--data-dir` says otherwise) and listens on `127.0.0.1` unless `HOST` is set.
+Behind a reverse proxy set `PUBLIC_BASE_URL` to the public address and `HOST=0.0.0.0`.
 
 Add it to Claude Code (the token is part of the URL, so treat the URL like a password):
 
@@ -73,8 +141,60 @@ Add it to Claude Code (the token is part of the URL, so treat the URL like a pas
 claude mcp add --transport http marketing-images http://localhost:8080/mcp/<token>
 ```
 
-Or run the container: copy `docker-compose.example.yml` to `docker-compose.yml`, copy `.env.example` to `.env`,
-fill it in and `docker compose up -d --build`.
+### Development
+
+```bash
+source ~/.nvm/nvm.sh && nvm use      # Node 22 (see .nvmrc)
+npm ci
+ACCESS_TOKENS=dev:devtoken123 PUBLIC_BASE_URL=http://localhost:8080 DATA_DIR=./.data npm run dev
+```
+
+Other scripts: `npm run typecheck`, `npm test`, `npm run build`, `npm start`. The CLI from source: `npx tsx src/cli.ts --help`.
+
+## Docker (ghcr.io/nievesjesus/marketing-images)
+
+The image runs the HTTP server (tokens required) on port 8080 with its data in the `/data` volume:
+
+```bash
+docker run -d --name marketing-images -p 8080:8080 -v marketing-images-data:/data \
+  -e ACCESS_TOKENS=me:<token> -e PUBLIC_BASE_URL=https://image-mcp.example.com \
+  -e GEMINI_API_KEY=<key> \
+  ghcr.io/nievesjesus/marketing-images:latest
+```
+
+Tags: `vX.Y.Z` (exact), `X.Y` (latest patch of a minor) and `latest`; platforms `linux/amd64` and `linux/arm64`. Or use Compose: copy
+`docker-compose.example.yml` to `docker-compose.yml`, copy `.env.example` to `.env`, fill it in and `docker compose up -d --build`. The same image can also
+serve one local client over stdio: `docker run -i --rm -v mi:/data ghcr.io/nievesjesus/marketing-images node dist/cli.js --stdio` (links are `file://` paths inside the container).
+
+## Postiz direct upload
+
+If `POSTIZ_URL` and `POSTIZ_API_KEY` are set, the **final graphics** (`compose_post`, `compose_custom`, `compose_carousel`) are **also uploaded to Postiz** automatically, and the result includes
+`postiz: { id, path }` (for `compose_carousel` it is `slides[].postiz` plus an ordered `postiz_paths`; for `generate_image`/`edit_image` it is `images[].postiz`, only when you ask for it). The
+agent then uses `postiz.path` directly as the Postiz attachment and skips `uploadFromUrlTool`: this is what makes local (stdio) mode useful, because a local file
+is not reachable by Postiz.
+
+- **Endpoint:** `POST {base}/upload`, `multipart/form-data` with one field named `file`; the answer is Postiz's `MediaFile` (`id`, `name`, `path`...). Header
+  `Authorization: <api key>` (the raw key, no `Bearer`). Spec: <https://docs.postiz.com/public-api/openapi.json> (operation `uploadFile`).
+- **`POSTIZ_URL`** may be the app URL or the API base; it is normalized:
+
+  | You set | Uploads go to |
+  |---|---|
+  | `https://api.postiz.com` (or `https://platform.postiz.com`, or `.../public/v1`) | `https://api.postiz.com/public/v1/upload` (Postiz Cloud) |
+  | `https://postiz.example.com` (or `.../api`, or `.../api/public/v1`) | `https://postiz.example.com/api/public/v1/upload` (self-hosted) |
+
+  Use `https://` (plain `http://` only for a Postiz on the same machine; a warning is logged otherwise).
+- **Control:** by default `compose_post`, `compose_custom` and `compose_carousel` upload the final graphic, while `generate_image`, `edit_image` and `get_job` (and so their
+  results) do **not**: those pictures are usually backgrounds that get a headline later. `POSTIZ_AUTO_UPLOAD=false` turns every automatic upload off. Per call,
+  `upload_to_postiz: true | false` on any of those six tools overrides the default (`true` also forces an upload when `POSTIZ_AUTO_UPLOAD=false`). A draft with blocking warnings
+  (`needs_attention`) is not uploaded automatically.
+- **Failures never fail the tool:** the image comes back as usual with a `postiz_error` message (no key, URL or response body in it) and the agent can fall back to
+  `uploadFromUrlTool` (public links) or call `upload_to_postiz` later. One retry with a short backoff happens on HTTP 429.
+- **Rate limit:** Postiz's Public API allows 30 requests per hour, and every upload is one request. That is why `generate_image` and `edit_image` do not upload unless
+  the call passes `upload_to_postiz=true` (use it only when the picture itself is the finished image); the tool descriptions say so.
+- **`upload_to_postiz`** takes the `url` or `file_path` of an image this server made **for you** (ownership is recorded per user; other users' images, arbitrary links and files
+  answer the same "not found"). An image that was already uploaded returns the same Postiz copy without using another request.
+- **HTTP mode:** the Postiz key belongs to one account, not to each user of a multi-user server, so the credentials are ignored (with a startup warning) unless you set
+  `POSTIZ_ALLOW_IN_HTTP=true` for a **single-tenant** deployment.
 
 ## Configuration
 
@@ -82,14 +202,17 @@ Copy `.env.example`; every name is listed there.
 
 | Variable | Secret | Default | Meaning |
 |---|---|---|---|
-| `ACCESS_TOKENS` | yes | (required) | `name:token,name:token`. Tokens are URL-safe (`openssl rand -hex 24`). The name keys quota and logs. Remove an entry and restart to revoke it. |
+| `ACCESS_TOKENS` | yes | (required in HTTP mode, ignored in stdio) | `name:token,name:token`. Tokens are URL-safe (`openssl rand -hex 24`). The name keys quota and logs. Remove an entry and restart to revoke it. |
 | `GEMINI_API_KEY`, `FAL_KEY`, `LEONARDO_API_KEY` | yes | none | Missing key = provider `available: false`. |
-| `PUBLIC_BASE_URL` | no | `http://localhost:8080` | Base of the image links, e.g. `https://image-mcp.codeame.dev`. |
-| `DATA_DIR` | no | `/data` | SQLite database (`app.db`: ledger, saved templates, saved brands), `images/{yyyy}/{mm}/{uuid}.{png\|jpg}`, `fonts/` and `brands/` (saved brand assets). Mount a volume. |
+| `POSTIZ_URL`, `POSTIZ_API_KEY` | key: yes | none | Both enable the [direct Postiz upload](#postiz-direct-upload). |
+| `POSTIZ_AUTO_UPLOAD`, `POSTIZ_ALLOW_IN_HTTP` | no | `true`, `false` | Upload the final graphics (`compose_*`) automatically (`generate_image` and `edit_image` only with `upload_to_postiz=true`); allow the upload in HTTP mode (single-tenant only). |
+| `PUBLIC_BASE_URL` | no | `http://localhost:8080` (HTTP); none = `file://` links (stdio) | Base of the image links, e.g. `https://image-mcp.codeame.dev`. |
+| `DATA_DIR` | no | `/data` (HTTP), `$MARKETING_IMAGES_HOME` or `~/.marketing-images` (stdio and the `--http` CLI) | SQLite database (`app.db`: ledger, saved templates, saved brands, image owners), `images/{yyyy}/{mm}/{uuid}.{png\|jpg}`, `fonts/` and `brands/` (saved brand assets). Mount a volume. |
+| `LOCAL_IMAGE_DIRS` | no | none | Stdio only: extra folders (absolute or `~/...`, comma-separated) from which your own local `file://` photos may be read. |
 | `RETENTION_DAYS` | no | `30` | An hourly sweep deletes older images (Postiz keeps its own copy). |
-| `DAILY_IMAGE_LIMIT`, `DAILY_USD_LIMIT`, `DAILY_RENDER_LIMIT` | no | `30`, `3.00`, `200` | Per-user caps, UTC day. Renders are the free `compose_post` calls. |
+| `DAILY_IMAGE_LIMIT`, `DAILY_USD_LIMIT`, `DAILY_RENDER_LIMIT` | no | `30`, `3.00`, `200` | Per-user caps, UTC day. Renders are the free `compose_*` calls. |
 | `SYNC_WAIT_MS` | no | `60000` | Longest a `generate_image`/`edit_image` call waits for a queued provider (fal, Leonardo) before saving a job and returning a `job_id`. Gemini answers in one request and is awaited up to 120 s. |
-| `PORT`, `HOST`, `LOG_LEVEL`, `NODE_ENV` | no | `8080`, `0.0.0.0`, `info`, `production` | `NODE_ENV=development` binds loopback and allows `http://localhost` image links. |
+| `PORT`, `HOST`, `LOG_LEVEL`, `NODE_ENV` | no | `8080`, `0.0.0.0`, `info`, `production` | `NODE_ENV=development` binds loopback and allows `http://localhost` image links. Logs: stdout in HTTP mode, stderr in stdio mode. |
 
 ## HTTP surface
 
@@ -110,10 +233,34 @@ Logs are one JSON line per event on stdout. They carry the token **name**, never
 4. Environment variables from the table above (set the secrets yourself; `PUBLIC_BASE_URL=https://image-mcp.codeame.dev`).
 5. In Claude: Customize, Connectors, Add custom connector, paste `https://image-mcp.codeame.dev/mcp/<token>`, "No sign-in".
 
+## Releasing
+
+A tag `vX.Y.Z` publishes the npm package, the Docker image and the plugin zips (`.github/workflows/release.yml`). One-time setup:
+
+1. **npm:** create the organization `codeame` on npmjs.com (the scope of `@codeame/marketing-images`; public packages are free), then create an access token
+   that can publish to it (a granular token with read and write on the `@codeame` scope, or an automation token).
+2. **GitHub:** repository Settings, Secrets and variables, Actions: add the secret `NPM_TOKEN` with that token. The Docker push uses the built-in `GITHUB_TOKEN`
+   (after the first push, set the `marketing-images` package visibility to public in GitHub Packages).
+
+To release:
+
+```bash
+# 1. set the same version in package.json and src/version.ts (test/config.test.ts checks they match), then
+npm run typecheck && npm test && npm run build && npm pack --dry-run
+# 2. commit, then tag and push the tag
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+The workflow stops if the tag differs from `package.json`'s version. It then (a) builds and tests, (b) runs `npm publish --provenance --access public`,
+(c) pushes `ghcr.io/nievesjesus/marketing-images` as `vX.Y.Z`, `X.Y` and `latest` for `linux/amd64` and `linux/arm64`, and (d) runs `bash build.sh` at the repository
+root and attaches `marketing-orchestrator.zip` and `marketing-orchestrator-plugin.zip` to the GitHub Release. The skill version (`SKILL.md` metadata) is independent of
+the server version; `build.sh` only checks that the skill and the plugin manifest agree.
+
 ## Design notes
 
 - **MCP SDK**: the v2 line, `@modelcontextprotocol/server` (`createMcpHandler`, stateless by default) with
   `@modelcontextprotocol/node` to mount it on `node:http`. Docs: https://ts.sdk.modelcontextprotocol.io/v2/serving/http.md
+  Stdio uses `serveStdio` from `@modelcontextprotocol/server/stdio` (same package, no extra dependency). Docs: https://ts.sdk.modelcontextprotocol.io/v2/serving/stdio.md
 - **SQLite**: built-in `node:sqlite` (no native module to build, works on Node 22.13+ without flags; the
   ExperimentalWarning is silenced with `--disable-warning` in the scripts and the Dockerfile). Money is stored as integer micro-dollars.
 - **HTML parsing** (`compose_custom`): `parse5` 8.0.1 (MIT; it depends on `entities`, BSD-2-Clause). Docs: https://parse5.js.org/
@@ -132,4 +279,5 @@ Logs are one JSON line per event on stdout. They carry the token **name**, never
   resumes it. Quota is reserve, call, settle (real cost when the provider reports one) or release.
 - **Prompt guard** (`src/safety.ts`): keyword lists refuse real people, minors in sensitive contexts and third-party
   brands/characters before any provider is called; editing the user's own photo is allowed.
+- **Image ownership**: every stored image is recorded with the user that made it (`image_owners` table), so `upload_to_postiz` only accepts your own images.
 - Tests (`npm test`) need no network and write sample renders to `.samples/` (git-ignored).

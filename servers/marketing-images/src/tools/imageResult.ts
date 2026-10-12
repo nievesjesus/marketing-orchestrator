@@ -4,6 +4,7 @@ import type { AppContext } from '../context.js';
 import type { Candidate, RoutePlan } from '../router.js';
 import { readStoredImage, type DeliveredImage, type DoneOutcome, type ImageOutcome } from '../providers/orchestrator.js';
 import { makePreview, PreviewBudget } from '../render/preview.js';
+import { fileRef, handoffClause, postizFor, uploadImageToPostizField } from './postizHelpers.js';
 import { jsonResult, type LogMeta } from './run.js';
 import { brandArgSchema } from './shared.js';
 
@@ -24,6 +25,9 @@ export const sizeField = z
   .optional()
   .describe('Resolution tier for models that have one (1K about 1000 px on the long side, 2K about 2000 px, costs more). Default 1K, which is plenty for social posts.');
 
+/** `upload_to_postiz` for generate_image, edit_image and get_job: off by default (these pictures are usually backgrounds). */
+export const uploadField = uploadImageToPostizField;
+
 export const numImagesField = z.number().int().min(1).max(4).default(1).describe('How many alternatives to make (1-4). Each one is billed.');
 
 export const brandField = brandArgSchema
@@ -43,9 +47,13 @@ export function logCandidate(meta: LogMeta) {
   };
 }
 
-const NEXT_STEP_DONE =
-  'Show the previews to the user and ask whether they like one. The image has no text on it: add headlines with compose_post using the chosen `url` as background.image_url. ' +
-  'Give the final `url` to the scheduling tool (e.g. Postiz uploadFromUrlTool); the links stay available for about 30 days.';
+function nextStepDone(ctx: AppContext, uploaded: boolean): string {
+  const clause = handoffClause(ctx, 'pick', uploaded);
+  return (
+    'Show the previews to the user and ask whether they like one. The image has no text on it: add headlines with compose_post using the chosen `url` as background.image_url. ' +
+    `${clause.charAt(0).toUpperCase()}${clause.slice(1)}`
+  );
+}
 
 const round = (n: number, digits = 4): number => Math.round(n * 10 ** digits) / 10 ** digits;
 
@@ -65,31 +73,49 @@ async function previewsFor(ctx: AppContext, images: DeliveredImage[]): Promise<C
   return content;
 }
 
-function describeDone(outcome: DoneOutcome): Record<string, unknown> {
+async function describeDone(
+  ctx: AppContext,
+  outcome: DoneOutcome,
+  upload: boolean | undefined,
+  meta: LogMeta,
+): Promise<{ fields: Record<string, unknown>; uploaded: boolean }> {
   const perImage = outcome.images.length > 0 ? round(outcome.costUsd / outcome.images.length) : 0;
-  return {
-    status: 'done',
-    provider: outcome.provider,
-    model: outcome.model,
-    model_label: outcome.modelLabel,
-    fallback_from: outcome.fallbackFrom,
-    routing: outcome.rule,
-    images: outcome.images.map((image) => ({
+  const images: Record<string, unknown>[] = [];
+  let uploaded = outcome.images.length > 0;
+  // One at a time: Postiz allows 30 requests per hour, so a burst would only earn a 429.
+  for (const image of outcome.images) {
+    const postiz = await postizFor(ctx, image.key, upload, { autoDefault: false, data: image.data, meta });
+    if (!postiz.postiz) uploaded = false;
+    images.push({
       url: image.url,
+      ...fileRef(ctx, image.key),
+      ...postiz,
       width: image.width,
       height: image.height,
       provider: outcome.provider,
       model: outcome.model,
       cost_usd: perImage,
-    })),
-    cost_usd: round(outcome.costUsd, 6),
-    cost_is_estimate: outcome.costIsEstimate,
-    warnings: outcome.warnings,
+    });
+  }
+  return {
+    uploaded,
+    fields: {
+      status: 'done',
+      provider: outcome.provider,
+      model: outcome.model,
+      model_label: outcome.modelLabel,
+      fallback_from: outcome.fallbackFrom,
+      routing: outcome.rule,
+      images,
+      cost_usd: round(outcome.costUsd, 6),
+      cost_is_estimate: outcome.costIsEstimate,
+      warnings: outcome.warnings,
+    },
   };
 }
 
 /** The tool result for a finished or queued image request. */
-export async function outcomeResult(ctx: AppContext, user: string, outcome: ImageOutcome, meta: LogMeta): Promise<CallToolResult> {
+export async function outcomeResult(ctx: AppContext, user: string, outcome: ImageOutcome, meta: LogMeta, upload?: boolean): Promise<CallToolResult> {
   meta.provider = outcome.provider;
   meta.model = outcome.model;
   meta.routing = outcome.rule;
@@ -117,11 +143,12 @@ export async function outcomeResult(ctx: AppContext, user: string, outcome: Imag
 
   meta.n = outcome.images.length;
   meta.cost_usd = outcome.costUsd;
+  const done = await describeDone(ctx, outcome, upload, meta);
   return jsonResult(
     {
-      ...describeDone(outcome),
+      ...done.fields,
       ...allowance,
-      next_step: NEXT_STEP_DONE,
+      next_step: nextStepDone(ctx, done.uploaded),
     },
     await previewsFor(ctx, outcome.images),
   );

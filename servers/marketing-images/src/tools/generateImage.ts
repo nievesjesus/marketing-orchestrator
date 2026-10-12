@@ -7,7 +7,7 @@ import { RATIOS } from '../models.js';
 import { adaptersFor } from '../providers/index.js';
 import { defaultDeps, runImageRequest } from '../providers/orchestrator.js';
 import { assertPromptAllowed } from '../safety.js';
-import { brandField, logCandidate, modelField, numImagesField, outcomeResult, providerField, sizeField } from './imageResult.js';
+import { brandField, logCandidate, modelField, numImagesField, outcomeResult, providerField, sizeField, uploadField } from './imageResult.js';
 import { runTool } from './run.js';
 
 const inputSchema = z.object({
@@ -31,6 +31,7 @@ const inputSchema = z.object({
   reference_image_urls: z.array(z.url()).max(14).optional().describe('Public https links to images that show the subject or style to follow (the user’s product photo, a brand mood image).'),
   seed: z.number().int().min(0).max(2147483647).optional().describe('Repeat a result: the same seed with the same prompt gives the same picture on models that support it.'),
   leave_space: z.enum(['top', 'bottom', 'left', 'right']).optional().describe('Keep that side of the picture calm and empty so a headline can be placed there later with compose_post.'),
+  upload_to_postiz: uploadField,
 });
 
 export function registerGenerateImage(server: McpServer, ctx: AppContext, user: string): void {
@@ -47,7 +48,9 @@ export function registerGenerateImage(server: McpServer, ctx: AppContext, user: 
         'Real people, other companies’ brands/logos and cartoon characters are refused. ' +
         'The answer says which provider was used (`provider`) and why another was tried first (`fallback_from`). ' +
         'If `status` is "pending", the image is still being made: call get_job with the `job_id` after about 15 seconds. ' +
-        'Results are public links kept for about 30 days plus small previews; creating an image does not publish anything.',
+        'Results are public links kept for about 30 days plus small previews (in local stdio mode each image also has `file_path`); creating an image does not publish anything. ' +
+        'generate_image does not upload to Postiz unless upload_to_postiz=true: the picture is usually a background that gets a headline later, and compose_post uploads the final graphic automatically when Postiz credentials are configured. ' +
+        'Pass upload_to_postiz=true only when the picture itself is the finished image: each image then has `postiz.path`, which you use directly as the Postiz attachment (skip uploadFromUrlTool). Postiz allows only 30 uploads per hour.',
       inputSchema,
       annotations: { title: 'Create an AI image', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
@@ -81,7 +84,7 @@ export function registerGenerateImage(server: McpServer, ctx: AppContext, user: 
           defaultDeps(adaptersFor(ctx)),
           { onCandidate: logCandidate(meta) },
         );
-        return outcomeResult(ctx, user, outcome, meta);
+        return outcomeResult(ctx, user, outcome, meta, args.upload_to_postiz);
       }),
   );
 }

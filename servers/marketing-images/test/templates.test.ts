@@ -75,7 +75,7 @@ describe('saved templates over MCP (two owners)', () => {
 
   it('save_template draws the examples, stores a preview, and returns the variables and warnings', async () => {
     const r = await callTool(server.url, A, 'save_template', promoArgs('promo-photo'));
-    expect(r.isError).toBeUndefined();
+    expect(r.isError, textOf(r)).toBeUndefined();
     const d = jsonOf(r);
     expect(d).toMatchObject({ saved: true, name: 'promo-photo', version: 1, owner: 'alice', shared: false, formats: ['square', 'portrait'], tags: ['promo', 'sale'], preview_format: 'square' });
     expect(d.variables.map((v: any) => v.name)).toEqual(['title', 'price', 'photo']);

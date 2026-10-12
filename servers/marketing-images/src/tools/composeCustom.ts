@@ -7,6 +7,7 @@ import { renderCustom } from '../render/custom/render.js';
 import { FORMAT_NAMES, FORMATS } from '../render/formats.js';
 import { makePreview, PreviewBudget } from '../render/preview.js';
 import type { RenderWarning } from '../render/warnings.js';
+import { fileRef, handoffClause, postizFor, uploadToPostizField } from './postizHelpers.js';
 import { jsonResult, runTool } from './run.js';
 import { CUSTOM_BLOCKING_WARNINGS, assetsSchema, brandArgSchema, composeDeps, variablesSchema } from './shared.js';
 
@@ -32,6 +33,7 @@ const inputSchema = z.object({
   assets: assetsSchema.optional(),
   variables: variablesSchema.optional(),
   output: z.enum(['auto', 'png', 'jpg']).optional().describe('auto (default): jpg when the layout uses photos (assets), png otherwise.'),
+  upload_to_postiz: uploadToPostizField,
 });
 
 export function registerComposeCustom(server: McpServer, ctx: AppContext, user: string): void {
@@ -45,6 +47,7 @@ export function registerComposeCustom(server: McpServer, ctx: AppContext, user: 
         'Free (no AI cost) and deterministic. After drawing, the server checks the result and returns `warnings` for text outside the safe area, text overflowing its box or cut off by the edge, and low contrast against the background: ' +
         'read them, fix the HTML and call again until `needs_attention` is false, then show the preview to the user before using the link. ' +
         'Saving a layout you will reuse: save_template. ' +
+        'In local (stdio) mode the result also has `file_path`; When Postiz credentials are configured, this tool uploads the final graphic automatically (pass upload_to_postiz=false to skip it): if the result has `postiz.path`, the image is already in Postiz, so use that path directly as the Postiz attachment (skip uploadFromUrlTool); a `postiz_error` is only a warning (call upload_to_postiz once, or attach the file yourself). ' +
         CUSTOM_HTML_GUIDE,
       inputSchema,
       annotations: { title: 'Draw a custom layout from HTML', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -68,9 +71,12 @@ export function registerComposeCustom(server: McpServer, ctx: AppContext, user: 
         meta.nodes = out.applied.nodes;
         meta.warnings = warnings.map((w) => w.code);
         const needsAttention = warnings.some((w) => CUSTOM_BLOCKING_WARNINGS.has(w.code));
+        const postiz = await postizFor(ctx, stored.key, args.upload_to_postiz, { autoDefault: true, data: out.data, meta, draft: needsAttention });
         return jsonResult(
           {
             url: stored.url,
+            ...fileRef(ctx, stored.key),
+            ...postiz,
             width: out.width,
             height: out.height,
             format: args.format,
@@ -83,7 +89,7 @@ export function registerComposeCustom(server: McpServer, ctx: AppContext, user: 
             graphics_left_today: quota.left,
             next_step: needsAttention
               ? 'Do not use this image yet: fix the warnings that concern text (overflow, safe area, contrast) in the HTML and call compose_custom again.'
-              : 'Show the preview to the user. Once they approve, give `url` to the scheduling tool (e.g. Postiz uploadFromUrlTool); the link is kept for about 30 days. To reuse this layout, call save_template.',
+              : `Show the preview to the user. Once they approve, ${handoffClause(ctx, 'one', postiz.postiz !== undefined)} To reuse this layout, call save_template.`,
           },
           preview ? [{ type: 'image', data: preview.data.toString('base64'), mimeType: preview.mimeType }] : [],
         );

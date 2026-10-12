@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import { mkdir, readdir, realpath, rename, rmdir, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /**
  * Image storage (DESIGN section 4). `Storage` is the seam for a future
@@ -13,7 +15,7 @@ export type ImageExt = 'png' | 'jpg';
 export interface StoredImage {
   /** Storage-relative key, e.g. `2026/10/<uuid>.png`. */
   key: string;
-  /** Public HTTPS URL to hand to Postiz `uploadFromUrlTool`. */
+  /** Public HTTPS URL to hand to Postiz `uploadFromUrlTool` (a `file://` URL in local stdio mode without PUBLIC_BASE_URL). */
   url: string;
   bytes: number;
   contentType: string;
@@ -36,6 +38,12 @@ export interface Storage {
   open(relativePath: string): Promise<PublicFile | null>;
   /** Delete files older than the retention window. */
   sweep(): Promise<SweepResult>;
+  /** Absolute path of a stored key on this machine, or null for storages that are not on a local disk. */
+  localPath(key: string): string | null;
+  /** The storage key of one of OUR image links (`<base>/i/<key>` or a `file://` URL inside the store), else null. */
+  keyForUrl(url: string): string | null;
+  /** The storage key of an absolute file path inside the store, else null. Lexical check only: `open()` re-checks real paths. */
+  keyForPath(absPath: string): string | null;
 }
 
 const CONTENT_TYPES: Record<ImageExt, string> = { png: 'image/png', jpg: 'image/jpeg' };
@@ -49,7 +57,8 @@ const STALE_TEMP_MS = 60 * 60 * 1000;
 export interface LocalStorageOptions {
   /** `DATA_DIR`; images live under `<dataDir>/images`. */
   dataDir: string;
-  publicBaseUrl: string;
+  /** Base of the image links; null means `file://` URLs (local stdio mode). */
+  publicBaseUrl: string | null;
   retentionDays: number;
   now?: () => number;
 }
@@ -77,10 +86,50 @@ export class LocalStorage implements Storage {
     await rename(tempPath, finalPath);
     return {
       key,
-      url: `${this.options.publicBaseUrl}/i/${key}`,
+      url: this.options.publicBaseUrl ? `${this.options.publicBaseUrl}/i/${key}` : pathToFileURL(finalPath).href,
       bytes: data.length,
       contentType: CONTENT_TYPES[ext],
     };
+  }
+
+  localPath(key: string): string | null {
+    return PUBLIC_PATH_RE.test(key) ? path.join(this.root, key) : null;
+  }
+
+  keyForUrl(url: string): string | null {
+    const base = this.options.publicBaseUrl;
+    if (base && url.startsWith(`${base}/i/`)) {
+      const rel = url.slice(base.length + 3);
+      return PUBLIC_PATH_RE.test(rel) ? rel : null;
+    }
+    if (url.startsWith('file:')) {
+      try {
+        return this.keyForPath(fileURLToPath(url));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  keyForPath(absPath: string): string | null {
+    if (!path.isAbsolute(absPath)) return null;
+    const normalized = path.normalize(absPath);
+    const roots = [this.root];
+    try {
+      const real = realpathSync(this.root);
+      if (real !== this.root) roots.push(real);
+    } catch {
+      // The store does not exist yet: nothing can be inside it.
+    }
+    for (const root of roots) {
+      const prefix = root + path.sep;
+      if (normalized.startsWith(prefix)) {
+        const rel = normalized.slice(prefix.length).split(path.sep).join('/');
+        return PUBLIC_PATH_RE.test(rel) ? rel : null;
+      }
+    }
+    return null;
   }
 
   async open(relativePath: string): Promise<PublicFile | null> {
